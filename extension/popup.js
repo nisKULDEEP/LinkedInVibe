@@ -16,23 +16,14 @@ const mainMenuDiv = document.getElementById('mainMenu');
   // Inputs
   const apiKeyInput = document.getElementById('apiKeyInput');
   const authTokenInput = document.getElementById('authTokenInput');
-  const modeByokBtn = document.getElementById('modeByok');
-  const modeProBtn = document.getElementById('modePro');
-  const byokFields = document.getElementById('byokFields');
-  const proFields = document.getElementById('proFields');
-  let currentMode = 'byok';
-
-  // Load configured user and key/token
-  chrome.storage.local.get(['linkedinUsername', 'geminiApiKey', 'authToken', 'authMode'], (result) => {
-    const hasKey = result.geminiApiKey;
-    const hasToken = result.authToken;
-    const model = result.authMode || 'byok';
-    
-    setMode(model);
-
-    if (result.linkedinUsername && (hasKey || hasToken)) {
+  // The following elements are no longer needed for mode selection
+  //  // Load configured user and keys
+  chrome.storage.local.get(['linkedinUsername', 'geminiApiKey', 'authToken'], (result) => {
+    // Check if ALL exist
+    if (result.linkedinUsername && result.geminiApiKey && result.authToken) {
       showMainMenu(result.linkedinUsername);
     } else {
+      // Pre-fill what we have
       if (result.linkedinUsername) usernameInput.value = result.linkedinUsername;
       if (result.geminiApiKey) apiKeyInput.value = result.geminiApiKey;
       if (result.authToken) authTokenInput.value = result.authToken;
@@ -97,47 +88,49 @@ const mainMenuDiv = document.getElementById('mainMenu');
   }
 
   // 2. Setup Logic
-  modeByokBtn.addEventListener('click', () => setMode('byok'));
-  modeProBtn.addEventListener('click', () => setMode('pro'));
+  // modeByokBtn.addEventListener('click', () => setMode('byok')); // No longer needed
+  // modeProBtn.addEventListener('click', () => setMode('pro')); // No longer needed
 
-  function setMode(mode) {
-      currentMode = mode;
-      if (mode === 'byok') {
-          modeByokBtn.style.background = '#fff';
-          modeByokBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-          modeProBtn.style.background = 'transparent';
-          modeProBtn.style.boxShadow = 'none';
-          byokFields.style.display = 'block';
-          proFields.style.display = 'none';
-      } else {
-          modeProBtn.style.background = '#fff';
-          modeProBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-          modeByokBtn.style.background = 'transparent';
-          modeByokBtn.style.boxShadow = 'none';
-          proFields.style.display = 'block';
-          byokFields.style.display = 'none';
-      }
-  }
+  // function setMode(mode) { // No longer needed
+  //     currentMode = mode;
+  //     if (mode === 'byok') {
+  //         modeByokBtn.style.background = '#fff';
+  //         modeByokBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+  //         modeProBtn.style.background = 'transparent';
+  //         modeProBtn.style.boxShadow = 'none';
+  //         byokFields.style.display = 'block';
+  //         proFields.style.display = 'none';
+  //     } else {
+  //         modeProBtn.style.background = '#fff';
+  //         modeProBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+  //         modeByokBtn.style.background = 'transparent';
+  //         modeByokBtn.style.boxShadow = 'none';
+  //         proFields.style.display = 'block';
+  //         byokFields.style.display = 'none';
+  //     }
+  // }
 
+  // Unified Auth Flow: All 3 fields required
   saveUserBtn.addEventListener('click', () => {
     const rawInput = usernameInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
     const token = authTokenInput.value.trim();
 
     if (!rawInput) { showError('Username required'); return; }
-    if (currentMode === 'byok' && !apiKey) { showError('API Key required'); return; }
-    if (currentMode === 'pro' && !token) { showError('Token required'); return; }
+    if (!apiKey) { showError('Gemini Key required'); return; }
+    if (!token) { showError('Access Token required'); return; }
     
     let cleanUser = rawInput;
     if (rawInput.includes('linkedin.com/in/')) {
         cleanUser = rawInput.split('linkedin.com/in/')[1].replace(/\/$/, '');
     }
 
+    // Verify Token? Optional. For now just save.
     chrome.storage.local.set({ 
       linkedinUsername: cleanUser,
       geminiApiKey: apiKey,
       authToken: token,
-      authMode: currentMode
+      authMode: 'unified' 
     }, () => {
       showMainMenu(cleanUser);
     });

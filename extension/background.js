@@ -40,11 +40,16 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 async function checkAndExecuteSchedule() {
-    const { authToken, linkedinUsername } = await chrome.storage.local.get(['authToken', 'linkedinUsername']);
+    const result = await chrome.storage.local.get(['authToken', 'linkedinUsername']);
+    const authToken = result.authToken;
+    const linkedinUsername = result.linkedinUsername;
+    
     if (!authToken || !linkedinUsername) return;
 
     try {
-        const response = await fetch('http://localhost:3000/api/schedule', {
+        // Use Live Backend for Scheduler
+        const BACKEND_URL = 'https://linkedinvibe.onrender.com/api/schedule';
+        const response = await fetch(BACKEND_URL, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         const data = await response.json();
@@ -130,7 +135,7 @@ async function executeAutoPilot(post, token, username) {
 // Helper to update status
 async function markPostStatus(postId, status, token) {
      try {
-        const BACKEND_URL = 'http://localhost:3000/api'; 
+        const BACKEND_URL = 'https://linkedinvibe.onrender.com/api'; 
         await fetch(`${BACKEND_URL}/schedule/${postId}/complete`, {
             method: 'POST',
             headers: { 
@@ -236,7 +241,7 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
 
     // Handle AutoPilot Completion
     if (autoPilotPost && authToken) {
-        const BACKEND_URL = 'http://localhost:3000/api'; 
+        const BACKEND_URL = 'https://linkedinvibe.onrender.com/api'; 
         fetch(`${BACKEND_URL}/schedule/${autoPilotPost.id}/complete`, {
             method: 'POST',
             headers: { 

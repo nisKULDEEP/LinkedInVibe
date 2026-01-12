@@ -22,31 +22,32 @@
     <p class="subtitle">Create viral LinkedIn content instantly.</p>
     
     <div id="onboarding" class="section" style="display:none;">
-      <!-- Mode Toggle -->
-      <div class="mode-toggle-container" style="display: flex; background: #eef0f4; padding: 4px; border-radius: 8px; margin-bottom: 15px;">
-          <button id="modeByok" class="mode-btn active" style="flex: 1; border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; background: #fff; color: #333; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">🔑 My Key (Free)</button>
-          <button id="modePro" class="mode-btn" style="flex: 1; border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; background: transparent; color: #666;">☁️ Pro Cloud</button>
+      <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+        To use LinkedInVibe, you must connect your account.
+      </p>
+
+      <div class="input-group">
+          <label>1. LinkedIn Username</label>
+          <input type="text" id="usernameInput" placeholder="e.g. johndoe" />
       </div>
 
-      <input type="text" id="usernameInput" placeholder="LinkedIn Username (e.g. johndoe)" />
-      
-      <!-- BYOK Input -->
-      <div id="byokFields">
-          <input type="password" id="apiKeyInput" placeholder="Gemini API Key" style="margin-top: 5px;" />
-          <div style="font-size: 10px; color: #666; margin-bottom: 10px;">
-            <a href="https://aistudio.google.com/app/apikey" target="_blank">Get Gemini API Key</a>
+      <div class="input-group">
+          <label>2. Google Gemini Key (Free)</label>
+          <input type="password" id="apiKeyInput" placeholder="Paste API Key here" />
+          <div class="helper-link">
+            <a href="https://aistudio.google.com/app/apikey" target="_blank">Get Key ↗</a>
           </div>
       </div>
 
-      <!-- Pro Input -->
-      <div id="proFields" style="display: none;">
-          <input type="password" id="authTokenInput" placeholder="Pro Access Token (from Dashboard)" style="margin-top: 5px;" />
-          <div style="font-size: 10px; color: #666; margin-bottom: 10px;">
-            <a href="https://nisKULDEEP.github.io/LinkedInVibe/#/dashboard" target="_blank">Get Token from Dashboard</a>
+      <div class="input-group">
+          <label>3. Dashboard Access Token</label>
+          <input type="password" id="authTokenInput" placeholder="Paste Token from Dashboard" />
+          <div class="helper-link">
+            <a href="https://niskuldeep.github.io/LinkedInVibe/#/dashboard" target="_blank">Get Token ↗</a>
           </div>
       </div>
 
-      <button id="saveUserBtn" class="secondary-btn">Save Setup</button>
+      <button id="saveUserBtn" class="primary-btn" style="width: 100%; margin-top: 10px;">Connect & Start 🚀</button>
     </div>
 
     <div id="mainMenu" class="section" style="display:none;">

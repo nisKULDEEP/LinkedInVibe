@@ -109,6 +109,14 @@ export default function Dashboard() {
       }
   };
 
+  const trackDownload = (source) => {
+    if (window.logFirebaseEvent && window.firebaseAnalytics) {
+      window.logFirebaseEvent(window.firebaseAnalytics, 'download_extension', {
+        source: source
+      });
+    }
+  };
+
   // Detect extension
   useEffect(() => {
       const handleExtensionReady = () => setExtensionReady(true);
@@ -274,6 +282,7 @@ export default function Dashboard() {
                         <a 
                             href="https://github.com/nisKULDEEP/LinkedInVibe/raw/main/linkedinvibe-extension.zip"
                             download
+                            onClick={() => trackDownload('dashboard_fallback')}
                             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transition shadow-lg"
                         >
                             ⬇️ Download Extension

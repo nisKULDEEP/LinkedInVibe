@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn Scraper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="info-icon" id="infoIcon">ℹ️</div>
+    <div id="disclaimerTooltip" class="disclaimer-tooltip">
+        <strong>Privacy & Compliance</strong><br>
+        • We scrape your top 10 posts related to you.<br>
+        • All data is saved in <strong>Chrome Local Storage</strong>.<br>
+        • Your API Key is stored locally on your device.<br>
+        • No data is sent to external servers.
+    </div>
+
+    <img src="icon.png" class="logo" alt="Logo" width="60" height="60" style="margin-bottom: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <h1>LinkedInVibe</h1>
+    <p class="subtitle">Create viral LinkedIn content instantly.</p>
+    
+    <div id="onboarding" class="section" style="display:none;">
+      <!-- Mode Toggle -->
+      <div class="mode-toggle-container" style="display: flex; background: #eef0f4; padding: 4px; border-radius: 8px; margin-bottom: 15px;">
+          <button id="modeByok" class="mode-btn active" style="flex: 1; border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; background: #fff; color: #333; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">🔑 My Key (Free)</button>
+          <button id="modePro" class="mode-btn" style="flex: 1; border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; background: transparent; color: #666;">☁️ Pro Cloud</button>
+      </div>
+
+      <input type="text" id="usernameInput" placeholder="LinkedIn Username (e.g. johndoe)" />
+      
+      <!-- BYOK Input -->
+      <div id="byokFields">
+          <input type="password" id="apiKeyInput" placeholder="Gemini API Key" style="margin-top: 5px;" />
+          <div style="font-size: 10px; color: #666; margin-bottom: 10px;">
+            <a href="https://aistudio.google.com/app/apikey" target="_blank">Get Gemini API Key</a>
+          </div>
+      </div>
+
+      <!-- Pro Input -->
+      <div id="proFields" style="display: none;">
+          <input type="password" id="authTokenInput" placeholder="Pro Access Token (from Dashboard)" style="margin-top: 5px;" />
+          <div style="font-size: 10px; color: #666; margin-bottom: 10px;">
+            <a href="http://localhost:5173/dashboard" target="_blank">Get Token from Dashboard</a>
+          </div>
+      </div>
+
+      <button id="saveUserBtn" class="secondary-btn">Save Setup</button>
+    </div>
+
+    <div id="mainMenu" class="section" style="display:none;">
+        <div class="user-display">
+           Hi, <span id="menuUserDisplay">User</span> 👋
+        </div>
+
+        <div class="menu-card" id="btnInstantPost">
+            <div class="card-icon">⚡️</div>
+            <div class="card-text">
+                <h3>Instant Viral Post</h3>
+                <p>Generate magic content now</p>
+            </div>
+            <div class="card-arrow">→</div>
+        </div>
+
+        <div class="menu-card" id="btnSmartScheduler">
+            <div class="card-icon">📅</div>
+            <div class="card-text">
+                <h3>Smart Scheduler</h3>
+                <p>Plan ahead & Auto-post</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="actionArea" class="section" style="display:none;">
+      <button id="backToMenu" class="back-link">← Back to Menu</button>
+      
+      <div class="user-display" style="display:none;"> <!-- Hidden duplicate, used for logic but not UI -->
+          User: <span id="displayUser"></span> 
+      </div>
+      
+      <div class="action-header">
+          <h2>Create New Post</h2>
+      </div>
+
+      <button id="autoScrapeBtn" class="primary-btn">✨ Generate Magic Post</button>
+      
+      <div style="margin-top: 15px; width: 100%; text-align: left;">
+          <label style="font-size: 12px; font-weight: 500; color: #555;">Custom Topic (Optional)</label>
+          <textarea id="customTopic" rows="2" placeholder="e.g. 'React 19 features' or 'My journey as a startup founder'"></textarea>
+          
+          <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+             <label style="font-size: 12px; font-weight: 500; color: #555;">Schedule:</label>
+             <select id="scheduleDelay" style="padding: 5px; border-radius: 6px; border: 1px solid #ccc; width: 60%;">
+                 <option value="0">🚀 Post Now</option>
+                 <option value="1">⏱️ In 1 Minute (Test)</option>
+                 <option value="30">⏱️ In 30 Minutes</option>
+                 <option value="60">⏱️ In 1 Hour</option>
+                 <option value="180">⏱️ In 3 Hours</option>
+                 <option value="custom">📅 Custom Time</option>
+             </select>
+          </div>
+          <input type="time" id="customTimeInput" style="display:none; width: 100%;">
+      </div>
+    </div>
+
+    <div id="status" class="status">Ready to create magic...</div>
+    
+    <div id="menuFooter" style="margin-top: 10px; font-size: 11px; color: #888; display:none;">
+        <a href="#" id="changeUser">Settings</a> | <a href="#" id="resetKey">Reset</a>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

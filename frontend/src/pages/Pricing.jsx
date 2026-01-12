@@ -92,7 +92,7 @@ function classNames(...classes) {
 
 export default function Pricing() {
   const [frequency, setFrequency] = useState(frequencies[0]);
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('INR');
 
   return (
     <div className="bg-white py-24 sm:py-32">
@@ -207,10 +207,15 @@ export default function Pricing() {
                   tier.featured
                     ? 'bg-blue-500 text-white shadow-sm hover:bg-blue-400 focus-visible:outline-blue-500'
                     : 'bg-blue-50 text-blue-600 hover:bg-blue-100',
+                  tier.name !== 'Hobby / BYOK' && tier.name !== 'Enterprise' ? 'opacity-50 cursor-not-allowed' : '',
                   'mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
                 )}
+                onClick={(e) => { 
+                    if(tier.name !== 'Hobby / BYOK' && tier.name !== 'Enterprise') e.preventDefault(); 
+                }}
               >
-                {tier.price[frequency.value][currency] === 'Custom' ? 'Contact Sales' : (tier.featured || tier.name === 'Starter' ? 'Subscribe Now' : 'Start Free')}
+                {tier.price[frequency.value][currency] === 'Custom' ? 'Contact Sales' : 
+                 (tier.name === 'Hobby / BYOK' ? 'Start Free' : 'Coming Soon')}
               </Link>
             </div>
           ))}

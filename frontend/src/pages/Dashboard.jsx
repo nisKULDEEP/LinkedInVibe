@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Copy, Check, LogOut } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import Scheduler from '../components/Scheduler';
 
@@ -14,6 +14,17 @@ export default function Dashboard() {
   const [authLoading, setAuthLoading] = useState(false);
   const [credits, setCredits] = useState(null);
  
+  const location = useLocation();
+
+  useEffect(() => {
+    // Basic Deep Linking
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'scheduler') {
+      setActiveTab('scheduler');
+    }
+  }, [location]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);

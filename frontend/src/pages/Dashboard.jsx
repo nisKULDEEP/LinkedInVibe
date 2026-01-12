@@ -298,21 +298,22 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Subscription Section Placeholder */}
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-sm p-6 text-white transition-all transform hover:scale-[1.01]">
-                <h2 className="text-lg font-semibold mb-2">💎 Pro Subscription</h2>
+            {/* Current Plan - BYOK */}
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-sm p-6 text-white">
+                <h2 className="text-lg font-semibold mb-2">🔑 Your Plan</h2>
                 
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="opacity-90 mb-1">Current Plan: <strong>Free Trial</strong></p>
-                        <div className="text-sm bg-white/20 inline-block px-3 py-1 rounded-full backdrop-blur-sm">
-                            ✨ <strong>{credits !== null ? credits : '...'}</strong> credits remaining
-                        </div>
+                        <p className="opacity-90 mb-1">Current Plan: <strong>BYOK (Bring Your Own Key)</strong></p>
+                        <p className="text-sm text-emerald-100">
+                            ✅ Unlimited posts using your own Gemini API key
+                        </p>
                     </div>
                     
-                    <Link to="/pricing" className="bg-white text-indigo-600 px-5 py-2.5 rounded-lg font-bold shadow-lg hover:bg-gray-50 transition-colors">
-                        Upgrade to Pro
-                    </Link>
+                    <div className="text-right">
+                        <div className="text-3xl font-bold">Free</div>
+                        <div className="text-sm text-emerald-100">Forever</div>
+                    </div>
                 </div>
             </div>
         </>

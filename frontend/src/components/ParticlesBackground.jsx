@@ -57,13 +57,13 @@ export default function ParticlesBackground() {
         },
         particles: {
           color: {
-            value: "#3b82f6", // Blue particles
+            value: "#0a66c2", // LinkedIn Blue
           },
           links: {
-            color: "#93c5fd",
+            color: "#0a66c2",
             distance: 150,
             enable: true,
-            opacity: 0.3,
+            opacity: 0.4,
             width: 1,
           },
           move: {
@@ -84,7 +84,7 @@ export default function ParticlesBackground() {
             value: 80,
           },
           opacity: {
-            value: 0.3,
+            value: 0.6,
           },
           shape: {
             type: "circle",

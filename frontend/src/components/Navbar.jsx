@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Layout } from 'lucide-react';
+import icon from '../assets/icon.png';
 
 export default function Navbar() {
   return (
     <nav className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="LinkedInVibe Logo" className="h-8 w-8 rounded-lg shadow-sm" />
+          <img src={icon} alt="LinkedInVibe Logo" className="h-8 w-8 rounded-lg shadow-sm" />
           <Link to="/" className="text-xl font-bold text-gray-900 tracking-tight">LinkedInVibe</Link>
         </div>
         <div className="flex items-center gap-6">

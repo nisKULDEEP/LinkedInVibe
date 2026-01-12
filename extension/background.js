@@ -24,6 +24,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true;
   }
+
+  // Handle tokens from Dashboard bridge
+  if (request.action === "save_tokens") {
+      console.log("🔑 Receiving tokens from Dashboard...");
+      chrome.storage.local.set({
+          authToken: request.accessToken,
+          refreshToken: request.refreshToken,
+          linkedinUsername: request.username || ''
+      }, () => {
+          console.log("✅ Tokens saved from Dashboard!");
+          sendResponse({ success: true });
+      });
+      return true;
+  }
 });
 
 chrome.runtime.onInstalled.addListener(() => {

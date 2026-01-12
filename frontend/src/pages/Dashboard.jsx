@@ -13,6 +13,8 @@ export default function Dashboard() {
   const [email, setEmail] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [credits, setCredits] = useState(null);
+  const [extensionReady, setExtensionReady] = useState(false);
+  const [tokensSent, setTokensSent] = useState(false);
  
   const location = useLocation();
 
@@ -93,6 +95,38 @@ export default function Dashboard() {
           setTimeout(() => setCopied(false), 2000);
       }
   };
+
+  // Send tokens directly to extension
+  const sendToExtension = () => {
+      if(session?.access_token && session?.refresh_token) {
+          window.dispatchEvent(new CustomEvent('linkedinvibe-tokens', {
+              detail: {
+                  accessToken: session.access_token,
+                  refreshToken: session.refresh_token,
+                  username: session.user?.email?.split('@')[0] || ''
+              }
+          }));
+      }
+  };
+
+  // Detect extension
+  useEffect(() => {
+      const handleExtensionReady = () => setExtensionReady(true);
+      const handleTokensSaved = (e) => {
+          if (e.detail?.success) {
+              setTokensSent(true);
+              setTimeout(() => setTokensSent(false), 3000);
+          }
+      };
+      
+      window.addEventListener('linkedinvibe-extension-ready', handleExtensionReady);
+      window.addEventListener('linkedinvibe-tokens-saved', handleTokensSaved);
+      
+      return () => {
+          window.removeEventListener('linkedinvibe-extension-ready', handleExtensionReady);
+          window.removeEventListener('linkedinvibe-tokens-saved', handleTokensSaved);
+      };
+  }, []);
 
   if (loading) {
     return (
@@ -207,13 +241,30 @@ export default function Dashboard() {
                     </div>
                 </div>
                 
-                <button 
-                    onClick={copyToken}
-                    className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition"
-                >
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copied ? 'Copied!' : 'Copy Both Tokens (JSON)'}
-                </button>
+                {/* Primary: Send to Extension (if detected) */}
+                {extensionReady ? (
+                    <button 
+                        onClick={sendToExtension}
+                        className="mt-4 w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-700 transition"
+                    >
+                        {tokensSent ? <Check className="w-4 h-4" /> : '🔌'}
+                        {tokensSent ? 'Tokens Sent!' : 'Send to Extension (Auto)'}
+                    </button>
+                ) : (
+                    <button 
+                        onClick={copyToken}
+                        className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition"
+                    >
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        {copied ? 'Copied!' : 'Copy Both Tokens (JSON)'}
+                    </button>
+                )}
+                
+                {!extensionReady && (
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                        💡 Install the extension for one-click setup!
+                    </p>
+                )}
                 
                 <p className="text-xs text-red-500 mt-2">
                     Warning: These tokens grant access to your account. Do not share them.

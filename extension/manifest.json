@@ -39,6 +39,14 @@
             "js": [
                 "content.js"
             ]
+        },
+        {
+            "matches": [
+                "*://niskuldeep.github.io/LinkedInVibe/*"
+            ],
+            "js": [
+                "dashboard_bridge.js"
+            ]
         }
     ]
 }

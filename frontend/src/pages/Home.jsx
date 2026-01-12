@@ -2,15 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Zap, Shield, Download, Chrome, Settings, Play, CheckCircle } from 'lucide-react';
 import ParticlesBackground from '../components/ParticlesBackground';
+import { logAnalyticsEvent } from '../lib/firebase';
 
 export default function Home() {
   const trackDownload = (source) => {
-    if (window.logFirebaseEvent && window.firebaseAnalytics) {
-      window.logFirebaseEvent(window.firebaseAnalytics, 'download_extension', {
-        source: source
-      });
-      console.log('Download tracked:', source);
-    }
+    logAnalyticsEvent('download_extension', { source });
   };
 
   return (

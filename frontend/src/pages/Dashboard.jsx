@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Copy, Check, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { logAnalyticsEvent } from '../lib/firebase';
 
 import Scheduler from '../components/Scheduler';
 
@@ -110,11 +111,7 @@ export default function Dashboard() {
   };
 
   const trackDownload = (source) => {
-    if (window.logFirebaseEvent && window.firebaseAnalytics) {
-      window.logFirebaseEvent(window.firebaseAnalytics, 'download_extension', {
-        source: source
-      });
-    }
+    logAnalyticsEvent('download_extension', { source });
   };
 
   // Detect extension

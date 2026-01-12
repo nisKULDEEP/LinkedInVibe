@@ -83,8 +83,12 @@ export default function Dashboard() {
   };
   
   const copyToken = () => {
-      if(session?.access_token) {
-          navigator.clipboard.writeText(session.access_token);
+      if(session?.access_token && session?.refresh_token) {
+          const tokenData = JSON.stringify({
+              access_token: session.access_token,
+              refresh_token: session.refresh_token
+          });
+          navigator.clipboard.writeText(tokenData);
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
       }
@@ -180,23 +184,39 @@ export default function Dashboard() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 className="text-lg font-semibold mb-2">🔌 Connect Extension</h2>
                 <p className="text-gray-600 text-sm mb-4">
-                    Copy this access token and paste it into the LinkedInVibe extension to enable Pro features.
+                    Copy these tokens and paste them into the LinkedInVibe extension. The extension will auto-refresh when tokens expire!
                 </p>
                 
-                <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <code className="text-xs font-mono text-gray-800 break-all flex-1 line-clamp-1">
-                        {session.access_token}
-                    </code>
-                    <button 
-                        onClick={copyToken}
-                        className="p-2 hover:bg-gray-200 rounded-md transition"
-                        title="Copy Token"
-                    >
-                        {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-600" />}
-                    </button>
+                <div className="space-y-3">
+                    <div>
+                        <label className="text-xs font-medium text-gray-500 mb-1 block">Access Token (expires in ~1h)</label>
+                        <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                            <code className="text-xs font-mono text-gray-800 break-all flex-1 line-clamp-1">
+                                {session.access_token?.substring(0, 50)}...
+                            </code>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label className="text-xs font-medium text-gray-500 mb-1 block">Refresh Token (long-lived)</label>
+                        <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                            <code className="text-xs font-mono text-gray-800 break-all flex-1 line-clamp-1">
+                                {session.refresh_token?.substring(0, 50)}...
+                            </code>
+                        </div>
+                    </div>
                 </div>
+                
+                <button 
+                    onClick={copyToken}
+                    className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition"
+                >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copied ? 'Copied!' : 'Copy Both Tokens (JSON)'}
+                </button>
+                
                 <p className="text-xs text-red-500 mt-2">
-                    Warning: This token grants access to your account. Do not share it.
+                    Warning: These tokens grant access to your account. Do not share them.
                 </p>
             </div>
 

@@ -18,15 +18,34 @@ const mainMenuDiv = document.getElementById('mainMenu');
   const authTokenInput = document.getElementById('authTokenInput');
   // The following elements are no longer needed for mode selection
   //  // Load configured user and keys
-  chrome.storage.local.get(['linkedinUsername', 'geminiApiKey', 'authToken'], (result) => {
-    // Check if ALL exist
+  // --- Draft Saving Logic ---
+  const saveDraft = (key, value) => {
+    chrome.storage.local.set({ [key]: value });
+  };
+
+  usernameInput.addEventListener('input', (e) => saveDraft('draft_username', e.target.value));
+  apiKeyInput.addEventListener('input', (e) => saveDraft('draft_geminiApiKey', e.target.value));
+  authTokenInput.addEventListener('input', (e) => saveDraft('draft_authToken', e.target.value));
+
+  // Determine State on Load
+  chrome.storage.local.get([
+    'linkedinUsername', 'geminiApiKey', 'authToken', 
+    'draft_username', 'draft_geminiApiKey', 'draft_authToken'
+  ], (result) => {
+    // Check if ALL confirmed credentials exist -> Main Menu
     if (result.linkedinUsername && result.geminiApiKey && result.authToken) {
       showMainMenu(result.linkedinUsername);
     } else {
-      // Pre-fill what we have
-      if (result.linkedinUsername) usernameInput.value = result.linkedinUsername;
-      if (result.geminiApiKey) apiKeyInput.value = result.geminiApiKey;
-      if (result.authToken) authTokenInput.value = result.authToken;
+      // Restore Drafts or Partial Confirmed
+      if (result.draft_username || result.linkedinUsername) {
+        usernameInput.value = result.draft_username || result.linkedinUsername;
+      }
+      if (result.draft_geminiApiKey || result.geminiApiKey) {
+        apiKeyInput.value = result.draft_geminiApiKey || result.geminiApiKey;
+      }
+      if (result.draft_authToken || result.authToken) {
+        authTokenInput.value = result.draft_authToken || result.authToken;
+      }
       showOnboarding();
     }
   });
@@ -74,7 +93,7 @@ const mainMenuDiv = document.getElementById('mainMenu');
   if (btnSmartScheduler) {
       btnSmartScheduler.addEventListener('click', () => {
           // Open Dashboard in new tab
-          chrome.tabs.create({ url: 'https://nisKULDEEP.github.io/LinkedInVibe/#/dashboard' });
+          chrome.tabs.create({ url: 'https://nisKULDEEP.github.io/LinkedInVibe/#/dashboard?tab=scheduler' });
       });
   }
   
@@ -114,24 +133,41 @@ const mainMenuDiv = document.getElementById('mainMenu');
   saveUserBtn.addEventListener('click', () => {
     const rawInput = usernameInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
-    const token = authTokenInput.value.trim();
+    const tokenInput = authTokenInput.value.trim();
 
     if (!rawInput) { showError('Username required'); return; }
     if (!apiKey) { showError('Gemini Key required'); return; }
-    if (!token) { showError('Access Token required'); return; }
+    if (!tokenInput) { showError('Tokens JSON required'); return; }
+    
+    // Parse JSON tokens
+    let accessToken, refreshToken;
+    try {
+        const parsed = JSON.parse(tokenInput);
+        accessToken = parsed.access_token;
+        refreshToken = parsed.refresh_token;
+        if (!accessToken || !refreshToken) {
+            throw new Error('Missing tokens');
+        }
+    } catch (e) {
+        showError('Invalid JSON. Copy from Dashboard again.');
+        return;
+    }
     
     let cleanUser = rawInput;
     if (rawInput.includes('linkedin.com/in/')) {
         cleanUser = rawInput.split('linkedin.com/in/')[1].replace(/\/$/, '');
     }
 
-    // Verify Token? Optional. For now just save.
+    // Save both tokens
     chrome.storage.local.set({ 
       linkedinUsername: cleanUser,
       geminiApiKey: apiKey,
-      authToken: token,
+      authToken: accessToken,
+      refreshToken: refreshToken,
       authMode: 'unified' 
     }, () => {
+      // Clear drafts on success
+      chrome.storage.local.remove(['draft_username', 'draft_geminiApiKey', 'draft_authToken']);
       showMainMenu(cleanUser);
     });
   });

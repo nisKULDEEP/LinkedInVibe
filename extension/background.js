@@ -16,10 +16,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true });
       return true;
   }
+
+  if (request.action === "test_scheduler") {
+      console.log("🧪 Manual scheduler test triggered...");
+      checkAndExecuteSchedule().then(() => {
+          sendResponse({ success: true });
+      });
+      return true;
+  }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.alarms.create("scheduler_poll", { periodInMinutes: 5 });
+    console.log("🚀 Extension Installed/Updated - Creating scheduler alarm...");
+    chrome.alarms.create("scheduler_poll", { periodInMinutes: 1 });
+});
+
+// Ensure alarm exists on startup (in case extension was reloaded)
+chrome.runtime.onStartup.addListener(async () => {
+    console.log("🔄 Extension Startup - Verifying scheduler alarm...");
+    const alarms = await chrome.alarms.getAll();
+    const hasScheduler = alarms.some(a => a.name === "scheduler_poll");
+    
+    if (!hasScheduler) {
+        console.log("⚠️ Scheduler alarm missing - Creating now...");
+        chrome.alarms.create("scheduler_poll", { periodInMinutes: 1 });
+    } else {
+        console.log("✅ Scheduler alarm exists:", alarms.find(a => a.name === "scheduler_poll"));
+    }
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -39,47 +62,174 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
+// Supabase config for token refresh
+const SUPABASE_URL = 'https://nplvpyrjtkqjopslwvqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wbHZweXJqdGtxam9wc2x3dnFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjQxNDEsImV4cCI6MjA2NTIwMDE0MX0.fFLbRlBBKaRn3fKpKlb5l18p5aNXMnVcmhc0W6HExyY';
+
+async function refreshAccessToken(refreshToken) {
+    try {
+        console.log("🔑 Calling Supabase refresh endpoint...");
+        const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({ refresh_token: refreshToken })
+        });
+        
+        const data = await response.json();
+        
+        if (data.access_token && data.refresh_token) {
+            // Store the new tokens
+            await chrome.storage.local.set({
+                authToken: data.access_token,
+                refreshToken: data.refresh_token
+            });
+            console.log("✅ New tokens saved to storage.");
+            return data.access_token;
+        } else {
+            console.error("❌ Refresh response missing tokens:", data);
+            return null;
+        }
+    } catch (e) {
+        console.error("❌ Token refresh error:", e);
+        return null;
+    }
+}
+
 async function checkAndExecuteSchedule() {
-    const result = await chrome.storage.local.get(['authToken', 'linkedinUsername']);
-    const authToken = result.authToken;
+    console.log(`🕒 Polling Scheduler at ${new Date().toLocaleTimeString()}...`);
+    const result = await chrome.storage.local.get(['authToken', 'refreshToken', 'linkedinUsername', 'failedRetries']);
+    let authToken = result.authToken;
+    const refreshToken = result.refreshToken;
     const linkedinUsername = result.linkedinUsername;
+    const failedRetries = result.failedRetries || {}; // { postId: retryCount }
     
-    if (!authToken || !linkedinUsername) return;
+    if (!authToken || !linkedinUsername) {
+        console.log("⚠️ Polling skipped: Missing Token or Username.");
+        return;
+    }
 
     try {
         // Use Live Backend for Scheduler
         const BACKEND_URL = 'https://linkedinvibe.onrender.com/api/schedule';
-        const response = await fetch(BACKEND_URL, {
+        console.log(`📡 Fetching schedule from ${BACKEND_URL}`);
+        
+        let response = await fetch(BACKEND_URL, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
-        const data = await response.json();
+        let data = await response.json();
+        
+        // Auto-refresh on 401
+        if (response.status === 401 || data.error === 'Invalid Token') {
+            console.log("🔄 Token expired - attempting refresh...");
+            
+            if (!refreshToken) {
+                console.error("❌ No refresh token available. User must re-authenticate.");
+                return;
+            }
+            
+            const newToken = await refreshAccessToken(refreshToken);
+            if (newToken) {
+                authToken = newToken;
+                // Retry the request
+                console.log("✅ Token refreshed! Retrying request...");
+                response = await fetch(BACKEND_URL, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                data = await response.json();
+            } else {
+                console.error("❌ Token refresh failed. User must re-authenticate.");
+                return;
+            }
+        }
+        
+        // Enhanced error logging
+        if (!data.success) {
+            console.error("❌ Schedule API Failed:", {
+                error: data.error || "Unknown error",
+                message: data.message || "No message",
+                statusCode: response.status
+            });
+            return;
+        }
+        
+        console.log("📊 Schedule Response: Success", `(${data.schedule ? data.schedule.length : 0} total posts)`);
         
         if (data.success && data.schedule) {
             const now = new Date();
+            
+            // Log all posts with their details
+            console.log("📋 All scheduled posts:");
+            data.schedule.forEach((p, idx) => {
+                const scheduledTime = new Date(p.scheduled_time);
+                const isPast = scheduledTime <= now;
+                const retries = failedRetries[p.id] || 0;
+                console.log(`  ${idx + 1}. ID: ${p.id}, Topic: "${p.topic?.substring(0, 30)}...", Status: ${p.status}, Auto-Post: ${p.auto_post}, Time: ${scheduledTime.toLocaleString()}, ${isPast ? '✅ Past due' : '⏳ Future'}${retries > 0 ? `, Retries: ${retries}/3` : ''}`);
+            });
+            
+            // Process ALL pending posts that are due (auto_post only affects whether we auto-click Post)
             const duePosts = data.schedule.filter(p => 
                 p.status === 'pending' && 
-                p.auto_post === true && 
                 new Date(p.scheduled_time) <= now
             ).sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time)); // Oldest first
+
+            console.log(`🔎 Found ${duePosts.length} pending posts due.`);
 
             for (const post of duePosts) {
                 const scheduledTime = new Date(post.scheduled_time);
                 const diffHours = (now - scheduledTime) / (1000 * 60 * 60);
+                const postRetries = failedRetries[post.id] || 0;
 
                 if (diffHours > 24) {
                     // Mark as Failed (Missed Window)
                     console.log(`❌ Post ${post.id} is ${Math.round(diffHours)}h overdue. Marking failed.`);
                     await markPostStatus(post.id, 'failed', authToken);
                 } else {
-                    // Valid Post - Execute ONLY ONE per poll cycle (5 mins) to avoid spam
-                    console.log(`✅ Found due post ${post.id}. Executing...`);
-                    executeAutoPilot(post, authToken, linkedinUsername);
+                    // Valid Post - Execute with retry logic
+                    console.log(`✅ Found due post ${post.id} scheduled for ${scheduledTime.toLocaleTimeString()}. Executing... (Attempt ${postRetries + 1}/3)`);
+                    
+                    const success = await executeAutoPilotWithRetry(post, authToken, linkedinUsername);
+                    
+                    if (!success) {
+                        // Increment retry count
+                        failedRetries[post.id] = postRetries + 1;
+                        await chrome.storage.local.set({ failedRetries });
+                        
+                        if (failedRetries[post.id] >= 3) {
+                            console.error(`💀 Post ${post.id} failed 3 times. Marking as permanently FAILED.`);
+                            await markPostStatus(post.id, 'failed', authToken);
+                            delete failedRetries[post.id];
+                            await chrome.storage.local.set({ failedRetries });
+                        } else {
+                            console.warn(`⚠️ Post ${post.id} failed. Will retry (${failedRetries[post.id]}/3).`);
+                        }
+                    } else {
+                        // Clear retry count on success
+                        if (failedRetries[post.id]) {
+                            delete failedRetries[post.id];
+                            await chrome.storage.local.set({ failedRetries });
+                        }
+                    }
+                    
                     return; // Stop after triggering one
                 }
             }
         }
     } catch (e) {
-        console.error("Polling Error:", e);
+        console.error("🔥 Polling Error:", e.message || e, e.stack);
+    }
+}
+
+// Wrapper for retry logic - returns true on success, false on failure
+async function executeAutoPilotWithRetry(post, token, username) {
+    try {
+        await executeAutoPilot(post, token, username);
+        return true; // If no error thrown, consider it a success (tab opened)
+    } catch (e) {
+        console.error(`❌ executeAutoPilot error for post ${post.id}:`, e.message || e);
+        return false;
     }
 }
 
@@ -304,54 +454,147 @@ async function generatePostWithGeminiDirect(systemPrompt, apiKey) {
 }
 
 function constructSystemPrompt(scrapedPosts, userProfile, customTopic) {
-    // Construct Context
+    // -------- USER PROFILE CONTEXT --------
     let profileContext = "";
     if (userProfile) {
         profileContext = `
-        USER PROFILE CONTEXT:
-        - Name: ${userProfile.name}
-        - Headline: ${userProfile.headline}
-        - Experience: ${userProfile.experience}
-        - About: ${userProfile.about.substring(0, 500)}...
-        `;
+USER PROFILE CONTEXT:
+- Name: ${userProfile.name || "N/A"}
+- Headline: ${userProfile.headline || "N/A"}
+- Experience Summary: ${userProfile.experience || "N/A"}
+- About (excerpt): ${userProfile.about ? userProfile.about.substring(0, 600) : "N/A"}
+`;
     }
 
-    // Determine Topic Strategy
-    let topicInstruction = "3. The topic should be relevant to the user's niche (based on recent posts) but UNIQUE (do not copy exact topics).";
-    if (customTopic && customTopic.length > 0) {
-        topicInstruction = `3. **CRITICAL: The post MUST be about this specific custom topic:** "${customTopic}". Ignore topics from recent posts, only mimic the STYLE.`;
+    // -------- RECENT POSTS CONTEXT --------
+    const postsContext = (scrapedPosts || [])
+        .slice(0, 10)
+        .map((p, i) => `Post ${i + 1}: "${p.text}" (Likes: ${p.likes || 0})`)
+        .join("\n");
+
+    // -------- TOPIC STRATEGY --------
+    let topicInstruction = `
+TOPIC SELECTION RULE:
+- Infer the user's technical niche from recent posts.
+- Select EXACTLY ONE core system-design concept.
+- The post must go deep on this single idea.
+- Do NOT list multiple components or cover the whole system.
+`;
+
+    if (customTopic && customTopic.trim().length > 0) {
+        topicInstruction = `
+CRITICAL TOPIC OVERRIDE:
+- The post MUST be about this exact topic:
+  "${customTopic}"
+- Ignore topics from recent posts.
+- You may ONLY mimic tone and structure from recent posts.
+`;
     }
 
-    // Construct Prompt
-    const postsContext = (scrapedPosts || []).map(p => `- ${p.text} (Likes: ${p.likes})`).join('\n');
-    return `You are an expert LinkedIn content creator who writes highly engaging, viral posts for professional and tech audiences.
-    
-    Your task:
-    1. Analyze the style and tone of the USER'S RECENT POSTS provided below.
-    2. Incorporate the USER PROFILE CONTEXT to ensure the post is relevant to their specific role and background.
-    ${topicInstruction}
-    4. Generate a new LinkedIn post that matches this style but adheres to the following strict formatting rules.
-    
-    ${profileContext}
+    // -------- SYSTEM PROMPT --------
+    return `
+You are a Staff-level Software Engineer and technical educator who writes viral LinkedIn posts that teach ONE deep system-design insight clearly and memorably.
 
-    Formatting & Style Rules:
-    1. Use **bold** for key terms, stats, and section headers.
-    2. Use _italic_ for emphasis or nuance.
-    3. Use ✅, 🚀, 💡, 🔥, or 🎯 sparingly (max 1 per paragraph/section) for visual breaks.
-    4. Keep paragraphs short (1–2 lines each) for scannability.
-    5. Where relevant, include bullet points (•) or numbered lists (e.g., 1️⃣).
-    6. End with an engaging CTA (ask a question or invite discussion).
-    7. **CRITICAL LENGTH RULE:** The output MUST be strictly under 1,500 characters (including hashtags). If you exceed this, the post will fail. Aim for 1,200 characters.
-    8. **Hook:** The first 200 characters must be extremely compelling to hook the reader and make them click "See more".
-    9. Must be in English.
-    10. **Conciseness:** Cut fluff. Do not write long intros. Get straight to the value.
+Your goal is NOT to summarize systems.
+Your goal is to upgrade the reader’s mental model.
 
-    USER'S RECENT POSTS (Mimic this style):
-    ${postsContext}
-    
-    OUTPUT:
-    Return ONLY the post content.`;
+==============================
+YOUR TASK
+==============================
+1. Analyze the USER'S RECENT POSTS to understand tone, depth, and formatting.
+2. Use USER PROFILE CONTEXT to match seniority and domain language.
+${topicInstruction}
+3. Choose ONE insight that:
+   - Appears in real-world large-scale systems
+   - Is commonly misunderstood in interviews
+   - Has a clear tradeoff (latency, cost, memory, compute, complexity)
+
+==============================
+MANDATORY POST STRUCTURE
+==============================
+Follow this structure EXACTLY:
+
+1️⃣ HOOK (1–2 lines)
+- Must trigger curiosity or mild controversy
+- Should force "See more"
+
+2️⃣ CONTEXT (2–3 lines)
+- Briefly define the real problem at scale
+- No generic definitions
+
+3️⃣ CORE INSIGHT (MAIN BODY)
+- Explain ONE mechanism deeply
+- Explicitly answer:
+  • Why this approach exists
+  • Why the obvious alternative fails at scale
+- Use cause → effect reasoning
+
+4️⃣ CONCRETE EXAMPLE
+- Use numbered steps, a mini flow, or a short scenario
+- Keep it tangible and practical
+
+5️⃣ CLOSING INSIGHT
+- A sharp takeaway that upgrades understanding
+- Something the reader can recall in interviews
+
+6️⃣ CTA
+- Ask a technical question that invites discussion
+
+==============================
+STRICT RULES (NON-NEGOTIABLE)
+==============================
+- Do NOT dump components (no laundry lists).
+- Do NOT explain the entire system.
+- Depth over breadth.
+- Assume the reader is an engineer.
+- No fluff, no motivational filler.
+- No buzzword stacking.
+
+==============================
+FORMATTING RULES
+==============================
+- **Bold** only key ideas or tradeoffs.
+- _Italic_ only to highlight consequences or constraints.
+- Max 1 emoji per section.
+- Short paragraphs (1–2 lines).
+- Bullet points ONLY for logic or flows.
+
+==============================
+LENGTH & VIRALITY CONSTRAINTS
+==============================
+- Max length: 1,400 characters INCLUDING hashtags.
+- First 2 lines must hook immediately.
+- Optimize for saves and thoughtful comments.
+
+==============================
+LANGUAGE
+==============================
+- English only
+- Confident, precise, opinionated
+- Clear technical reasoning
+
+==============================
+HASHTAGS
+==============================
+- Add 5–8 relevant technical hashtags at the end
+- Examples: #SystemDesign #BackendEngineering #Scalability #HLD
+
+==============================
+CONTEXT INPUTS
+==============================
+
+${profileContext}
+
+USER'S RECENT POSTS (STYLE REFERENCE ONLY):
+${postsContext}
+
+==============================
+OUTPUT
+==============================
+Return ONLY the final LinkedIn post text.
+`;
 }
+
 
 // Helper to send status updates to content script
 function sendStatus(tabId, message) {
@@ -364,31 +607,55 @@ function sendStatus(tabId, message) {
 async function generateImagePrompt(apiKey, postText) {
      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
      
-     const imagePromptTemplate = `You are an AI that converts LinkedIn post content into a highly detailed **Orthographic Blueprint / Technical Schematic** image prompt.
+     const imagePromptTemplate = `You are an AI that converts a LinkedIn system-design post into a SINGLE, insight-driven technical illustration.
 
-Input Content: 
-"${postText.substring(0, 1500)}..."
+INPUT:
+"${postText.substring(0, 1200)}"
 
-**Step 1: Extract Key Concepts**
-Identify the top 3 items (technical terms, tools, or insights) from the text.
-(Example: "System Design, Scalability, Load Balancers")
+STEP 1 — Extract Core Insight:
+Identify the ONE main design concept the post explains.
+Examples:
+- Fanout on Write vs Fanout on Read
+- Hybrid Fanout Model
+- Cache IDs vs Full Objects
+- Hotkey Problem
 
-**Step 2: Generate Image Prompt**
-Create a prompt for a **Technical Orthographic Blueprint** that visually deconstructs these concepts. Think "Engineering Schematic" or "Architecture Plan".
+STEP 2 — Visual Mapping (MANDATORY):
+The image must visually explain THIS insight alone.
+Do NOT show full system architecture unless required.
 
-**Type-Specific Instructions:**
-- **Tech/Coding:** A complex system architecture diagram in blueprint style. White lines on technical blue background. Features: Server nodes, database cylinders, data flow arrows, API endpoints, grid lines, and dimensional measurements.
-- **Career/Productivity:** A "Success Algorithm" flowchart or "Career Trajectory" schematic. Logic gates, decision trees, and process blocks.
-- **General:** An exploded view or cross-section technical drawing of the main theme.
+INSIGHT → VISUAL MAPPING RULES:
+- Fanout on Write vs Read:
+  • Split-diagram (LEFT = Push, RIGHT = Pull)
+  • Arrows showing compute vs latency tradeoff
+- Hybrid Fanout:
+  • Normal users = push
+  • Celebrities = pull
+  • Clear separation
+- Cache IDs:
+  • Memory blocks labeled "ID-only"
+  • Object blobs outside cache
+- Hotkey Problem:
+  • One node overloaded
+  • Heat/pressure indicators
 
-**General Rules:**
-- **Style:** Orthographic Blueprint. Flat 2D technical drawing. Monospaced technical fonts for labels.
-- **Aesthetic:** Deep Blueprint Blue background (#004182) with White/Cyan lines. High precision.
-- **Details:** Include grid lines, measurement arrows, scale bars, and technical callouts (e.g., "FIG 1.0", "SCALE 1:1").
-- **Branding:** Bottom footer must have a thin white line. Text: "LinkedInVibe | @LinkedInVibe".
+STYLE:
+- Orthographic technical schematic
+- Flat 2D blueprint
+- White/cyan lines on deep blueprint blue (#004182)
+- Grid lines, measurement arrows, callouts
+- Labels like:
+  "WRITE-TIME COMPUTE"
+  "READ-TIME LATENCY"
+  "HOTKEY NODE"
 
-Output Format:
-"A technical orthographic blueprint of [Main Subject]. [Visual details: grid lines, measurements, schematic nodes for 'Key Concept 1, 2, 3']. Style: Blueprint, white lines on deep blue. Footer: 'LinkedInVibe' branding."`;
+BRANDING:
+- Thin footer line
+- Text: "LinkedInVibe | System Design"
+
+OUTPUT FORMAT:
+A single detailed image prompt describing the schematic clearly and precisely.
+`;
 
      const response = await fetch(apiUrl, {
         method: "POST",

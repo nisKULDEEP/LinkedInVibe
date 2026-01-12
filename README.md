@@ -14,7 +14,13 @@
 *   **Dual Mode**: Use your own API Key (Free) or subscribe to our Cloud Plan.
 *   **Privacy First**: Your data stays local (Community Edition).
 
-## 🚀 Getting Started
+## �️ Roadmap (Help Wanted!)
+We are building the ultimate **LinkedIn AI Agent**. Check out [ROADMAP.md](ROADMAP.md) for features you can build, including:
+*   ✨ **AI Profile Picture Enhancer**
+*   🪄 **"About Me" Auto-Fixer**
+*   🔍 **SEO Profile Auditor**
+
+## �🚀 Getting Started
 
 ### Option A: Install Extension (Easy)
 1.  Clone this repo.

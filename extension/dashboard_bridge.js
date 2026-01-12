@@ -36,5 +36,9 @@ window.addEventListener('linkedinvibe-tokens', (event) => {
     });
 });
 
-// Also check if extension is installed - so Dashboard can show the button
-window.dispatchEvent(new CustomEvent('linkedinvibe-extension-ready'));
+// Signal that extension is installed - dispatch repeatedly so React can catch it
+const signalReady = () => {
+    window.dispatchEvent(new CustomEvent('linkedinvibe-extension-ready'));
+};
+signalReady();
+setInterval(signalReady, 1000); // Keep signaling every second

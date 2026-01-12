@@ -241,39 +241,29 @@ export default function Dashboard() {
                     </div>
                 </div>
                 
-                {/* Primary: Send to Extension (if detected) */}
-                {extensionReady ? (
-                    tokensSent ? (
-                        // SUCCESS STATE - Clear completion message
-                        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
-                            <div className="text-4xl mb-2 animate-bounce">✅</div>
-                            <p className="text-green-800 font-semibold">Tokens Sent Successfully!</p>
-                            <p className="text-green-600 text-sm mt-1">
-                                Go back to the extension and click<br/>
-                                <strong>"Connect & Start"</strong> to finish setup.
-                            </p>
-                        </div>
-                    ) : (
-                        <button 
-                            onClick={sendToExtension}
-                            className="mt-4 w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-700 transition animate-pulse"
-                        >
-                            🔌 Send Tokens to Extension
-                        </button>
-                    )
+                {/* Connect to Extension Button */}
+                {tokensSent ? (
+                    // SUCCESS STATE - Clear completion message
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                        <div className="text-4xl mb-2 animate-bounce">✅</div>
+                        <p className="text-green-800 font-semibold">Connected Successfully!</p>
+                        <p className="text-green-600 text-sm mt-1">
+                            Go back to the extension and click<br/>
+                            <strong>"Connect & Start"</strong> to finish setup.
+                        </p>
+                    </div>
                 ) : (
                     <button 
-                        onClick={copyToken}
-                        className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition"
+                        onClick={sendToExtension}
+                        className="mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-3 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
                     >
-                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        {copied ? 'Copied!' : 'Copy Both Tokens (JSON)'}
+                        🔌 Connect to Extension
                     </button>
                 )}
                 
-                {!extensionReady && (
+                {!tokensSent && (
                     <p className="text-xs text-gray-500 mt-2 text-center">
-                        💡 Install the extension for one-click setup!
+                        Make sure you have the LinkedInVibe extension installed and open this page in Chrome.
                     </p>
                 )}
                 

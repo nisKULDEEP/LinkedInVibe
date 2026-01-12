@@ -17,7 +17,7 @@ export default function Scheduler({ session }) {
 
     async function fetchSchedule() {
         try {
-            const res = await fetch(`${API_URL}/schedule`, {
+            const res = await fetch(`${SCHEDULER_API}/schedule`, {
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
             const data = await res.json();
@@ -45,7 +45,7 @@ export default function Scheduler({ session }) {
         }
 
         try {
-            const res = await fetch(`${API_URL}/schedule`, {
+            const res = await fetch(`${SCHEDULER_API}/schedule`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export default function Scheduler({ session }) {
 
     async function handleDelete(id) {
         try {
-            await fetch(`${API_URL}/schedule/${id}`, {
+            await fetch(`${SCHEDULER_API}/schedule/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });

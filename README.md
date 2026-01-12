@@ -1,4 +1,5 @@
 # LinkedInVibe - The Open Source AI Post Manager 🚀
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Website-blue?style=for-the-badge&logo=google-chrome)](https://niskuldeep.github.io/LinkedInVibe/)
 
 **LinkedInVibe** is a powerful AI tool that helps you create viral LinkedIn content in seconds. It operates in two modes:
 

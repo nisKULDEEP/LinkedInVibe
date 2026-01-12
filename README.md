@@ -14,13 +14,20 @@
 *   **Dual Mode**: Use your own API Key (Free) or subscribe to our Cloud Plan.
 *   **Privacy First**: Your data stays local (Community Edition).
 
-## �️ Roadmap (Help Wanted!)
+## 🚀 Deployment (Render)
+1.  Push this code to GitHub.
+2.  Go to [dashboard.render.com](https://dashboard.render.com) -> New -> **Blueprint**.
+3.  Connect your repo.
+4.  Render will read `render.yaml` and ask for your Environment Variables (SUPABASE_URL, etc).
+5.  Click **Apply**. Done!
+
+## 🗺️ Roadmap (Help Wanted!)
 We are building the ultimate **LinkedIn AI Agent**. Check out [ROADMAP.md](ROADMAP.md) for features you can build, including:
 *   ✨ **AI Profile Picture Enhancer**
 *   🪄 **"About Me" Auto-Fixer**
 *   🔍 **SEO Profile Auditor**
 
-## �🚀 Getting Started
+## 🚀 Getting Started
 
 ### Option A: Install Extension (Easy)
 1.  Clone this repo.

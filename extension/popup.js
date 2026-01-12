@@ -83,7 +83,7 @@ const mainMenuDiv = document.getElementById('mainMenu');
   if (btnSmartScheduler) {
       btnSmartScheduler.addEventListener('click', () => {
           // Open Dashboard in new tab
-          chrome.tabs.create({ url: 'http://localhost:5173/dashboard' });
+          chrome.tabs.create({ url: 'https://nisKULDEEP.github.io/LinkedInVibe/#/dashboard' });
       });
   }
   

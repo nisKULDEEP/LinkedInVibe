@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: linkedinvibe-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    repo: https://github.com/nisKULDEEP/LinkedInVibe
+    branch: main
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: PORT
+        value: 10000

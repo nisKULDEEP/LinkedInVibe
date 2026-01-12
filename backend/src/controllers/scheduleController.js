@@ -50,13 +50,13 @@ async function createSchedule(req, res) {
 
         if (error) {
              console.error("DB Error:", error);
-             throw new Error("Failed to save schedule.");
+             throw error;
         }
         res.json({ success: true, item: data });
 
     } catch (error) {
         console.error("Create Schedule Error:", error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: "DEBUG: " + error.message });
     }
 }
 

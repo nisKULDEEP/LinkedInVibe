@@ -25,6 +25,45 @@ const mainMenuDiv = document.getElementById('mainMenu');
   usernameInput.addEventListener('input', (e) => saveDraft('draft_username', e.target.value));
   apiKeyInput.addEventListener('input', (e) => saveDraft('draft_geminiApiKey', e.target.value));
 
+  // Token Status UI Elements
+  const tokenStatusDiv = document.getElementById('tokenStatus');
+  const dashboardInstructions = document.getElementById('dashboardInstructions');
+  const connectError = document.getElementById('connectError');
+
+  // Check and update token status
+  function updateTokenStatus() {
+    chrome.storage.local.get(['authToken', 'refreshToken'], (result) => {
+      const hasTokens = result.authToken && result.refreshToken;
+      
+      if (hasTokens) {
+        // Tokens received!
+        tokenStatusDiv.style.display = 'block';
+        tokenStatusDiv.style.background = '#dcfce7';
+        tokenStatusDiv.style.border = '1px solid #86efac';
+        tokenStatusDiv.innerHTML = '<span style="color: #16a34a; font-weight: 600;">✅ Dashboard Connected!</span>';
+        dashboardInstructions.style.display = 'none';
+        saveUserBtn.disabled = false;
+        saveUserBtn.style.opacity = '1';
+        saveUserBtn.style.cursor = 'pointer';
+        connectError.style.display = 'none';
+      } else {
+        // No tokens yet
+        tokenStatusDiv.style.display = 'block';
+        tokenStatusDiv.style.background = '#fef9c3';
+        tokenStatusDiv.style.border = '1px solid #fde047';
+        tokenStatusDiv.innerHTML = '<span style="color: #ca8a04;">⏳ Waiting for Dashboard connection...</span>';
+        dashboardInstructions.style.display = 'block';
+        saveUserBtn.disabled = true;
+        saveUserBtn.style.opacity = '0.5';
+        saveUserBtn.style.cursor = 'not-allowed';
+      }
+    });
+  }
+
+  // Initial check and periodic refresh (in case user sends tokens while popup is open)
+  updateTokenStatus();
+  setInterval(updateTokenStatus, 2000);
+
   // Determine State on Load
   chrome.storage.local.get([
     'linkedinUsername', 'geminiApiKey', 'authToken', 

@@ -39,9 +39,15 @@
           </div>
       </div>
 
-      <div class="input-group" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
+      <div class="input-group" id="dashboardSection" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
           <label style="color: #0369a1; font-weight: 600;">3. Connect Dashboard</label>
-          <p style="font-size: 11px; color: #0284c7; margin: 8px 0; line-height: 1.4;">
+          
+          <!-- Status Indicator -->
+          <div id="tokenStatus" style="margin: 8px 0; padding: 8px; border-radius: 6px; font-size: 11px; display: none;">
+            <!-- Will be populated by JS -->
+          </div>
+          
+          <p id="dashboardInstructions" style="font-size: 11px; color: #0284c7; margin: 8px 0; line-height: 1.4;">
             Open the Dashboard below, login, then click<br/>
             <strong>"Send to Extension"</strong> button.
           </p>
@@ -51,7 +57,8 @@
           </a>
       </div>
 
-      <button id="saveUserBtn" class="primary-btn" style="width: 100%; margin-top: 10px;">Connect & Start 🚀</button>
+      <button id="saveUserBtn" class="primary-btn" style="width: 100%; margin-top: 10px;" disabled>Connect & Start 🚀</button>
+      <p id="connectError" style="font-size: 11px; color: #dc2626; margin-top: 6px; text-align: center; display: none;"></p>
     </div>
 
     <div id="mainMenu" class="section" style="display:none;">

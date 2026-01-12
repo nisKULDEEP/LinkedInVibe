@@ -243,13 +243,24 @@ export default function Dashboard() {
                 
                 {/* Primary: Send to Extension (if detected) */}
                 {extensionReady ? (
-                    <button 
-                        onClick={sendToExtension}
-                        className="mt-4 w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-700 transition"
-                    >
-                        {tokensSent ? <Check className="w-4 h-4" /> : '🔌'}
-                        {tokensSent ? 'Tokens Sent!' : 'Send to Extension (Auto)'}
-                    </button>
+                    tokensSent ? (
+                        // SUCCESS STATE - Clear completion message
+                        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                            <div className="text-4xl mb-2 animate-bounce">✅</div>
+                            <p className="text-green-800 font-semibold">Tokens Sent Successfully!</p>
+                            <p className="text-green-600 text-sm mt-1">
+                                Go back to the extension and click<br/>
+                                <strong>"Connect & Start"</strong> to finish setup.
+                            </p>
+                        </div>
+                    ) : (
+                        <button 
+                            onClick={sendToExtension}
+                            className="mt-4 w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-700 transition animate-pulse"
+                        >
+                            🔌 Send Tokens to Extension
+                        </button>
+                    )
                 ) : (
                     <button 
                         onClick={copyToken}
@@ -266,9 +277,11 @@ export default function Dashboard() {
                     </p>
                 )}
                 
-                <p className="text-xs text-red-500 mt-2">
-                    Warning: These tokens grant access to your account. Do not share them.
-                </p>
+                {!tokensSent && (
+                    <p className="text-xs text-red-500 mt-2">
+                        Warning: These tokens grant access to your account. Do not share them.
+                    </p>
+                )}
             </div>
 
             {/* Subscription Section Placeholder */}

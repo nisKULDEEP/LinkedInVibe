@@ -56,7 +56,7 @@ export default function Dashboard() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/LinkedInVibe/#/dashboard`,
       },
     });
     if (error) alert(error.message);

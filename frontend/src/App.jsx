@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Pricing from './pages/Pricing';
@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
         <Navbar />
         <Routes>
@@ -16,7 +16,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

@@ -241,9 +241,9 @@ export default function Dashboard() {
                     </div>
                 </div>
                 
-                {/* Connect to Extension Button */}
+                {/* Extension Connection Section */}
                 {tokensSent ? (
-                    // SUCCESS STATE - Clear completion message
+                    // SUCCESS STATE - Connected
                     <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
                         <div className="text-4xl mb-2 animate-bounce">✅</div>
                         <p className="text-green-800 font-semibold">Connected Successfully!</p>
@@ -252,23 +252,47 @@ export default function Dashboard() {
                             <strong>"Connect & Start"</strong> to finish setup.
                         </p>
                     </div>
+                ) : extensionReady ? (
+                    // EXTENSION DETECTED - Show Connect
+                    <div className="mt-4">
+                        <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-center">
+                            <span className="text-green-700 text-sm font-medium">✅ Extension Detected</span>
+                        </div>
+                        <button 
+                            onClick={sendToExtension}
+                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-3 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
+                        >
+                            🔌 Connect to Extension
+                        </button>
+                    </div>
                 ) : (
-                    <button 
-                        onClick={sendToExtension}
-                        className="mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-3 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
-                    >
-                        🔌 Connect to Extension
-                    </button>
+                    // EXTENSION NOT DETECTED - Show Install
+                    <div className="mt-4">
+                        <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                            <span className="text-yellow-700 text-sm font-medium">⚠️ Extension Not Detected</span>
+                        </div>
+                        <a 
+                            href="https://github.com/nisKULDEEP/LinkedInVibe/raw/main/linkedinvibe-extension.zip"
+                            download
+                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transition shadow-lg"
+                        >
+                            ⬇️ Download Extension
+                        </a>
+                        <div className="mt-3 text-xs text-gray-500 text-center">
+                            <p className="mb-1"><strong>After downloading:</strong></p>
+                            <ol className="text-left list-decimal list-inside space-y-1">
+                                <li>Unzip the file</li>
+                                <li>Go to <code className="bg-gray-100 px-1 rounded">chrome://extensions</code></li>
+                                <li>Enable Developer mode (top right)</li>
+                                <li>Click "Load unpacked" → Select folder</li>
+                                <li>Refresh this page</li>
+                            </ol>
+                        </div>
+                    </div>
                 )}
                 
                 {!tokensSent && (
-                    <p className="text-xs text-gray-500 mt-2 text-center">
-                        Make sure you have the LinkedInVibe extension installed and open this page in Chrome.
-                    </p>
-                )}
-                
-                {!tokensSent && (
-                    <p className="text-xs text-red-500 mt-2">
+                    <p className="text-xs text-red-500 mt-3">
                         Warning: These tokens grant access to your account. Do not share them.
                     </p>
                 )}

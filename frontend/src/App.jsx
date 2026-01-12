@@ -8,7 +8,7 @@ import Dashboard from './pages/Dashboard';
 function App() {
   return (
     <HashRouter>
-      <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+      <div className="min-h-screen text-gray-900 font-sans relative">
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />

@@ -25,7 +25,7 @@ export default function ParticlesBackground() {
     <Particles
       id="tsparticles"
       particlesLoaded={particlesLoaded}
-      className="absolute inset-0 -z-10"
+      className="fixed inset-0 -z-50 pointer-events-none"
       options={{
         background: { color: { value: "transparent" } },
         fpsLimit: 120,

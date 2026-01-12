@@ -42,7 +42,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 chrome.runtime.onInstalled.addListener(() => {
     console.log("🚀 Extension Installed/Updated - Creating scheduler alarm...");
-    chrome.alarms.create("scheduler_poll", { periodInMinutes: 1 });
+    chrome.alarms.create("scheduler_poll", { periodInMinutes: 5 });
 });
 
 // Ensure alarm exists on startup (in case extension was reloaded)
@@ -53,7 +53,7 @@ chrome.runtime.onStartup.addListener(async () => {
     
     if (!hasScheduler) {
         console.log("⚠️ Scheduler alarm missing - Creating now...");
-        chrome.alarms.create("scheduler_poll", { periodInMinutes: 1 });
+        chrome.alarms.create("scheduler_poll", { periodInMinutes: 5 });
     } else {
         console.log("✅ Scheduler alarm exists:", alarms.find(a => a.name === "scheduler_poll"));
     }

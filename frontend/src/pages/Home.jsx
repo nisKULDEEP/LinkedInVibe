@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Zap, Shield, Download, Chrome, Settings, Play, CheckCircle } from 'lucide-react';
+import { Sparkles, Zap, Shield, Download, Chrome, Settings, Play, CheckCircle, Github, Code } from 'lucide-react';
 import ParticlesBackground from '../components/ParticlesBackground';
 import { logAnalyticsEvent } from '../lib/firebase';
 
@@ -161,6 +161,63 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Open Source Section */}
+      <div className="bg-white py-24 border-t border-gray-100">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
+          <div className="flex justify-center mb-6">
+            <div className="p-3 bg-gray-900 rounded-full">
+              <Github className="w-8 h-8 text-white" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl mb-4">
+            Proudly Open Source 💖
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10">
+            LinkedInVibe is completely open source! We believe in building in public and community-driven development.
+          </p>
+          
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-left hover:border-gray-200 transition">
+              <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-3 mb-3">
+                <Code className="w-6 h-6 text-blue-600" />
+                For Developers
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Want to add features or fix bugs? Fork the repo, make changes, and submit a PR! 
+                It's a great project to add to your resume as an open-source contribution.
+              </p>
+              <div className="text-sm font-medium text-gray-900 bg-white inline-block px-3 py-1 rounded-md border border-gray-200 shadow-sm">
+                ✅ Perfect for Resume/Portfolio
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-left hover:border-gray-200 transition">
+              <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-3 mb-3">
+                <Sparkles className="w-6 h-6 text-purple-600" />
+                Feature Requests
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Have a cool idea for an AI feature? Open an issue on GitHub or discuss it with the community. 
+                We are building the ultimate LinkedIn tool together!
+              </p>
+              <div className="text-sm font-medium text-gray-900 bg-white inline-block px-3 py-1 rounded-md border border-gray-200 shadow-sm">
+                🚀 Help shape the roadmap
+              </div>
+            </div>
+          </div>
+
+          <a 
+            href="https://github.com/nisKULDEEP/LinkedInVibe"
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-gray-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg transform hover:-translate-y-1"
+          >
+            <Github className="w-5 h-5" />
+            Star & Contribute on GitHub
+          </a>
         </div>
       </div>
 

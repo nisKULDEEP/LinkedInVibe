@@ -10,14 +10,18 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-white min-h-screen relative overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden">
       <ParticlesBackground />
       
       {/* Hero Section */}
       <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-center">
+          <div className="mb-4 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm text-blue-800">
+            <Github className="mr-2 h-4 w-4" />
+            100% Open Source & Free
+          </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl drop-shadow-sm">
-            Supercharge your LinkedIn <br /> with <span className="text-blue-600 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">AI Magic</span>
+            Supercharge your LinkedIn <br /> with <span className="text-blue-600 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">Open Source AI</span>
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
             Generate viral posts, create stunning visuals, and schedule content in seconds. 

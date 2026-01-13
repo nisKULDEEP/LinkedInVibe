@@ -483,16 +483,38 @@ USER PROFILE CONTEXT:
     // -------- RECENT POSTS CONTEXT --------
     const postsContext = (scrapedPosts || [])
         .slice(0, 10)
-        .map((p, i) => `Post ${i + 1}: "${p.text}" (Likes: ${p.likes || 0})`)
+        .map((p, i) => `Post ${i + 1}: "${p.text}"`)
         .join("\n");
 
     // -------- TOPIC STRATEGY --------
     let topicInstruction = `
-TOPIC SELECTION RULE:
-- Infer the user's technical niche from recent posts.
-- Select EXACTLY ONE core system-design concept.
-- The post must go deep on this single idea.
-- Do NOT list multiple components or cover the whole system.
+TOPIC SELECTION & NOVELTY RULES (CRITICAL):
+
+1. Analyze the last 10 posts and IDENTIFY:
+   - The dominant category:
+     (LLD / HLD / DSA / Backend / Frontend / Infra)
+   - The specific problems or questions already covered.
+
+2. You MUST select a NEW problem or question.
+   - Do NOT reuse the same problem, system, or question.
+   - Do NOT rephrase a previously discussed topic.
+
+3. The new topic must be:
+   - In the SAME category (to maintain audience continuity)
+   - A NATURAL NEXT STEP in difficulty or scope.
+
+Examples:
+- If recent posts are LLD (Parking Lot, Vending Machine):
+  → Pick a NEW LLD like Splitwise, BookMyShow, Ride Matching.
+
+- If recent posts are HLD (News Feed, Rate Limiter):
+  → Pick a NEW HLD like Uber Dispatch, WhatsApp Messaging, Search Autocomplete.
+
+- If recent posts are DSA (Binary Search, Sliding Window):
+  → Pick a NEW DSA pattern or question, not a variant of the same one.
+
+4. Think like a Staff Engineer planning a content SERIES:
+   - “What should the audience learn NEXT?”
 `;
 
     if (customTopic && customTopic.trim().length > 0) {
@@ -500,28 +522,35 @@ TOPIC SELECTION RULE:
 CRITICAL TOPIC OVERRIDE:
 - The post MUST be about this exact topic:
   "${customTopic}"
-- Ignore topics from recent posts.
-- You may ONLY mimic tone and structure from recent posts.
+- Ignore topic selection rules.
+- ONLY mimic tone and structure from recent posts.
 `;
     }
 
     // -------- SYSTEM PROMPT --------
     return `
-You are a Staff-level Software Engineer and technical educator who writes viral LinkedIn posts that teach ONE deep system-design insight clearly and memorably.
+You are a Staff-level Software Engineer and technical educator who writes high-signal LinkedIn posts for engineers preparing for interviews or building real systems.
 
-Your goal is NOT to summarize systems.
-Your goal is to upgrade the reader’s mental model.
+Your goal is NOT to imitate past posts.
+Your goal is to ADVANCE the content logically.
 
 ==============================
 YOUR TASK
 ==============================
-1. Analyze the USER'S RECENT POSTS to understand tone, depth, and formatting.
-2. Use USER PROFILE CONTEXT to match seniority and domain language.
+1. Analyze the USER'S RECENT POSTS ONLY to understand:
+   - Category
+   - Depth
+   - Tone
+   - Formatting
+
+2. DO NOT repeat previously discussed problems or systems.
 ${topicInstruction}
-3. Choose ONE insight that:
-   - Appears in real-world large-scale systems
-   - Is commonly misunderstood in interviews
-   - Has a clear tradeoff (latency, cost, memory, compute, complexity)
+
+3. Choose ONE core insight that:
+   - Is interview-relevant
+   - Is practically useful
+   - Introduces something NEW to the audience
+   - Has a clear tradeoff or design tension
 
 ==============================
 MANDATORY POST STRUCTURE
@@ -529,77 +558,59 @@ MANDATORY POST STRUCTURE
 Follow this structure EXACTLY:
 
 1️⃣ HOOK (1–2 lines)
-- Must trigger curiosity or mild controversy
-- Should force "See more"
+- Curiosity-driven or mildly controversial
+- Must force “See more”
 
-2️⃣ CONTEXT (2–3 lines)
-- Briefly define the real problem at scale
-- No generic definitions
+2️⃣ PROBLEM STATEMENT (2–3 lines)
+- Clearly name the NEW problem or system
+- Frame why it is tricky or commonly misunderstood
 
-3️⃣ CORE INSIGHT (MAIN BODY)
-- Explain ONE mechanism deeply
+3️⃣ CORE INSIGHT
+- Explain ONE key design decision or tradeoff
 - Explicitly answer:
-  • Why this approach exists
-  • Why the obvious alternative fails at scale
-- Use cause → effect reasoning
+  • Why this design is chosen
+  • Why a naive approach breaks
 
 4️⃣ CONCRETE EXAMPLE
-- Use numbered steps, a mini flow, or a short scenario
-- Keep it tangible and practical
+- Mini flow, numbered steps, or scenario
+- No component dumping
 
-5️⃣ CLOSING INSIGHT
-- A sharp takeaway that upgrades understanding
-- Something the reader can recall in interviews
+5️⃣ INTERVIEW TAKEAWAY
+- A sentence the reader can reuse in interviews
 
 6️⃣ CTA
-- Ask a technical question that invites discussion
+- Ask a technical discussion question
 
 ==============================
-STRICT RULES (NON-NEGOTIABLE)
+STRICT RULES
 ==============================
-- Do NOT dump components (no laundry lists).
-- Do NOT explain the entire system.
+- NO topic repetition.
+- NO generic architecture summaries.
+- NO multiple problems in one post.
 - Depth over breadth.
-- Assume the reader is an engineer.
-- No fluff, no motivational filler.
-- No buzzword stacking.
+- Assume an engineering audience.
 
 ==============================
-FORMATTING RULES
+FORMAT & LENGTH
 ==============================
-- **Bold** only key ideas or tradeoffs.
-- _Italic_ only to highlight consequences or constraints.
-- Max 1 emoji per section.
-- Short paragraphs (1–2 lines).
-- Bullet points ONLY for logic or flows.
-
-==============================
-LENGTH & VIRALITY CONSTRAINTS
-==============================
-- Max length: 1,400 characters INCLUDING hashtags.
-- First 2 lines must hook immediately.
-- Optimize for saves and thoughtful comments.
-
-==============================
-LANGUAGE
-==============================
-- English only
-- Confident, precise, opinionated
-- Clear technical reasoning
+- Max 1,400 characters including hashtags
+- Short paragraphs (1–2 lines)
+- **Bold** only key ideas
+- _Italic_ only for consequences
+- Max 1 emoji per section
 
 ==============================
 HASHTAGS
 ==============================
-- Add 5–8 relevant technical hashtags at the end
-- Examples: #SystemDesign #BackendEngineering #Scalability #HLD
+- 5–8 relevant engineering hashtags
 
 ==============================
-CONTEXT INPUTS
+CONTEXT
 ==============================
 
 ${profileContext}
 
-USER'S RECENT POSTS (STYLE REFERENCE ONLY):
+RECENT POSTS (FOR STYLE ONLY — NOT TOPICS):
 ${postsContext}
 
 ==============================
@@ -617,67 +628,143 @@ function sendStatus(tabId, message) {
     }
 }
 
-// --- Image Helpers ---
 async function generateImagePrompt(apiKey, postText) {
-     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
-     
-     const imagePromptTemplate = `You are an AI that converts a LinkedIn system-design post into a SINGLE, insight-driven technical illustration.
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
-INPUT:
+    const imagePromptTemplate = `
+You are a Staff-level Software Engineer and visual storyteller.
+
+Your task is to create a SCROLL-STOPPING LinkedIn image that:
+- Immediately communicates VALUE
+- Teaches a software engineering idea visually
+- Feels insightful even without reading the post
+
+INPUT POST:
 "${postText.substring(0, 1200)}"
 
-STEP 1 — Extract Core Insight:
-Identify the ONE main design concept the post explains.
+================================
+STEP 1 — EXTRACT MESSAGE
+================================
+From the post, identify:
+1. ONE primary insight (the main learning)
+2. ONE short supporting idea or contrast (optional)
+
 Examples:
-- Fanout on Write vs Fanout on Read
-- Hybrid Fanout Model
-- Cache IDs vs Full Objects
-- Hotkey Problem
+- "Why fanout on write breaks at scale"
+- "Why O(n) fails silently in interviews"
+- "Caching objects vs caching IDs"
+- "The real reason monoliths slow teams"
 
-STEP 2 — Visual Mapping (MANDATORY):
-The image must visually explain THIS insight alone.
-Do NOT show full system architecture unless required.
+================================
+STEP 2 — DEFINE TEXT CONTENT (MANDATORY)
+================================
+The image MUST contain minimal but meaningful text:
 
-INSIGHT → VISUAL MAPPING RULES:
-- Fanout on Write vs Read:
-  • Split-diagram (LEFT = Push, RIGHT = Pull)
-  • Arrows showing compute vs latency tradeoff
-- Hybrid Fanout:
-  • Normal users = push
-  • Celebrities = pull
-  • Clear separation
-- Cache IDs:
-  • Memory blocks labeled "ID-only"
-  • Object blobs outside cache
-- Hotkey Problem:
-  • One node overloaded
-  • Heat/pressure indicators
+1️⃣ TITLE (MANDATORY)
+- 5–8 words max
+- Bold, high-contrast
+- Clearly states the topic or tension
 
-STYLE:
-- Orthographic technical schematic
-- Flat 2D blueprint
-- White/cyan lines on deep blueprint blue (#004182)
-- Grid lines, measurement arrows, callouts
-- Labels like:
-  "WRITE-TIME COMPUTE"
-  "READ-TIME LATENCY"
-  "HOTKEY NODE"
+Examples:
+- "Why News Feeds Don’t Scale"
+- "This DSA Trick Fails at Scale"
+- "The Cost of Naive Design"
+- "Why Interviews Trap Engineers"
 
-BRANDING:
-- Thin footer line
-- Text: "LinkedInVibe | System Design"
+2️⃣ SUBTEXT (OPTIONAL, 1 LINE)
+- Clarifies the insight or contrast
+- Smaller than title
 
-OUTPUT FORMAT:
-A single detailed image prompt describing the schematic clearly and precisely.
+Examples:
+- "Push vs Pull at 10M users"
+- "O(n) looks fine… until it isn’t"
+- "Latency vs Consistency tradeoff"
+
+3️⃣ MICRO LABELS (OPTIONAL)
+- 2–4 small technical cues near visuals
+- Examples:
+  • O(n) → O(log n)
+  • Cache Hit / Cache Miss
+  • Write Amplification
+  • Hot Key
+  • Latency ↑
+
+================================
+STEP 3 — CHOOSE VISUAL FORM
+================================
+Select the best visual representation:
+- Conceptual metaphor (balance, traffic, bottleneck, race)
+- Narrative illustration (before vs after, success vs failure)
+- Simplified technical visual (very minimal diagram)
+- Comparative layout (LEFT vs RIGHT)
+
+Do NOT force diagrams.
+Choose what best communicates the insight FAST.
+
+================================
+STYLE & AESTHETIC (CRITICAL)
+================================
+- Colorful, high-contrast illustration
+- Modern tech-art style
+- Bold primary colors with clean outlines
+- Slight exaggeration for emotional impact
+- Minimal but sharp typography
+
+Visual tone:
+- Intelligent
+- Confident
+- Opinionated
+- Engineer-first
+
+Include subtle software engineering cues:
+- Code symbols
+- Graphs or curves
+- Nodes, arrows, stacks
+- Performance indicators
+
+Avoid:
+- Dense paragraphs
+- Academic diagrams
+- Monochrome visuals
+- Generic stock art
+
+================================
+COMPOSITION RULES
+================================
+- Title must be readable on mobile
+- Clear focal point
+- Strong contrast between elements
+- Text should guide the eye, not dominate
+
+================================
+BRANDING
+================================
+- Subtle footer or corner text:
+  "LinkedInVibe | Software Engineering"
+- Branding must stay secondary
+
+================================
+OUTPUT FORMAT
+================================
+Return a SINGLE detailed image-generation prompt.
+Do NOT explain.
+Do NOT add commentary.
 `;
 
-     const response = await fetch(apiUrl, {
+    const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: imagePromptTemplate }] }] })
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: imagePromptTemplate }] }]
+        })
     });
+
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Anime sketch style tech illustration";
+
+    return (
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "Colorful tech illustration with a bold title, minimal subtext, and clear software engineering insight."
+    );
 }
 
 async function generateImageWithGemini(apiKey, imagePrompt) {

@@ -76,38 +76,35 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-// Supabase config for token refresh
-const SUPABASE_URL = 'https://nplvpyrjtkqjopslwvqa.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wbHZweXJqdGtxam9wc2x3dnFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjQxNDEsImV4cCI6MjA2NTIwMDE0MX0.fFLbRlBBKaRn3fKpKlb5l18p5aNXMnVcmhc0W6HExyY';
-
+// Token refresh via Backend (No Supabase Creds in Extension)
 async function refreshAccessToken(refreshToken) {
     try {
-        console.log("🔑 Calling Supabase refresh endpoint...");
-        const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        console.log("🔑 Calling Backend refresh endpoint...");
+        // Use production URL
+        const BACKEND_URL = 'https://linkedinvibe.onrender.com/api/refresh-token'; 
+        
+        const response = await fetch(BACKEND_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_ANON_KEY
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: refreshToken })
         });
         
         const data = await response.json();
         
-        if (data.access_token && data.refresh_token) {
+        if (data.success && data.access_token) {
             // Store the new tokens
             await chrome.storage.local.set({
                 authToken: data.access_token,
-                refreshToken: data.refresh_token
+                refreshToken: data.refresh_token || refreshToken // Use new or fallback to old
             });
             console.log("✅ New tokens saved to storage.");
             return data.access_token;
         } else {
-            console.error("❌ Refresh response missing tokens:", data);
+            console.error("❌ Refresh failed:", data.error);
             return null;
         }
     } catch (e) {
-        console.error("❌ Token refresh error:", e);
+        console.error("❌ Refresh Network Error:", e);
         return null;
     }
 }
@@ -590,10 +587,23 @@ STRICT RULES
 - Depth over breadth.
 - Assume an engineering audience.
 
+CRITICAL VALUE RULE:
+
+Before writing the post, internally define ONE learning sentence.
+The entire post must reinforce this sentence.
+
+The sentence must:
+- Be explainable in one breath
+- Be reusable in interviews
+- Contain a contrast (X vs Y)
+
+If the post introduces a second independent idea, REMOVE it.
+
+
 ==============================
 FORMAT & LENGTH
 ==============================
-- Max 1,400 characters including hashtags
+- Max 1,600 characters including hashtags
 - Short paragraphs (1–2 lines)
 - **Bold** only key ideas
 - _Italic_ only for consequences
@@ -632,121 +642,101 @@ async function generateImagePrompt(apiKey, postText) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
     const imagePromptTemplate = `
-You are a Staff-level Software Engineer and visual storyteller.
+You are a Staff-level Software Engineer creating a TEACHING IMAGE.
 
-Your task is to create a SCROLL-STOPPING LinkedIn image that:
-- Immediately communicates VALUE
-- Teaches a software engineering idea visually
-- Feels insightful even without reading the post
+This image must add NEW understanding beyond the text.
+If the image does not teach, it has failed.
 
 INPUT POST:
 "${postText.substring(0, 1200)}"
 
 ================================
-STEP 1 — EXTRACT MESSAGE
+STEP 1 — DEFINE THE LEARNING (MANDATORY)
 ================================
-From the post, identify:
-1. ONE primary insight (the main learning)
-2. ONE short supporting idea or contrast (optional)
+First, derive ONE explicit learning sentence from the post.
 
+The sentence MUST be concrete and testable.
 Examples:
-- "Why fanout on write breaks at scale"
-- "Why O(n) fails silently in interviews"
-- "Caching objects vs caching IDs"
-- "The real reason monoliths slow teams"
+- "Direct locks fail because concurrent writes mutate shared state at the same time."
+- "Event queues scale because writes are serialized before state mutation."
+- "O(n) algorithms fail when input size grows faster than latency budgets."
+
+DO NOT proceed until this sentence is clear.
 
 ================================
-STEP 2 — DEFINE TEXT CONTENT (MANDATORY)
+STEP 2 — DECIDE IMAGE STRUCTURE
 ================================
-The image MUST contain minimal but meaningful text:
+Choose the ONE structure that best PROVES the learning sentence:
 
-1️⃣ TITLE (MANDATORY)
-- 5–8 words max
-- Bold, high-contrast
-- Clearly states the topic or tension
+A) Side-by-side comparison
+   - LEFT = What breaks
+   - RIGHT = What works
 
+B) Step-by-step flow
+   - Step 1 → Step 2 → Step 3
+   - Highlight where failure occurs
+
+C) State transition diagram
+   - Before → During → After
+   - Show invalid vs valid state changes
+
+You MUST choose only ONE structure.
+
+================================
+STEP 3 — IMAGE CONTENT (NON-NEGOTIABLE)
+================================
+The image MUST contain ALL of the following:
+
+1️⃣ TITLE (Top)
+- States the learning sentence outcome
 Examples:
-- "Why News Feeds Don’t Scale"
-- "This DSA Trick Fails at Scale"
-- "The Cost of Naive Design"
-- "Why Interviews Trap Engineers"
+- "Why Locks Fail at Scale"
+- "How Event Queues Prevent Races"
 
-2️⃣ SUBTEXT (OPTIONAL, 1 LINE)
-- Clarifies the insight or contrast
-- Smaller than title
+2️⃣ VISUAL PROOF (Center)
+- Arrows showing order
+- State changes
+- Conflicting vs serialized operations
+- Explicit BEFORE / AFTER states
 
+3️⃣ MECHANISM LABELS (Required)
+Add 3–4 short labels that explain causality:
 Examples:
-- "Push vs Pull at 10M users"
-- "O(n) looks fine… until it isn’t"
-- "Latency vs Consistency tradeoff"
+- "Concurrent Writes"
+- "Shared Mutable State"
+- "Serialized Events"
+- "Immutable Log"
+- "Version Check"
 
-3️⃣ MICRO LABELS (OPTIONAL)
-- 2–4 small technical cues near visuals
-- Examples:
-  • O(n) → O(log n)
-  • Cache Hit / Cache Miss
-  • Write Amplification
-  • Hot Key
-  • Latency ↑
+These labels must explain WHY, not WHAT.
 
-================================
-STEP 3 — CHOOSE VISUAL FORM
-================================
-Select the best visual representation:
-- Conceptual metaphor (balance, traffic, bottleneck, race)
-- Narrative illustration (before vs after, success vs failure)
-- Simplified technical visual (very minimal diagram)
-- Comparative layout (LEFT vs RIGHT)
-
-Do NOT force diagrams.
-Choose what best communicates the insight FAST.
+4️⃣ CONCLUSION STRIP (Bottom, 1 line)
+Summarize the lesson:
+Examples:
+- "Serialization > Locking in distributed systems"
+- "Queues absorb concurrency; locks fight it"
 
 ================================
-STYLE & AESTHETIC (CRITICAL)
+STYLE (SECONDARY TO MEANING)
 ================================
-- Colorful, high-contrast illustration
-- Modern tech-art style
-- Bold primary colors with clean outlines
-- Slight exaggeration for emotional impact
-- Minimal but sharp typography
+- Clean, minimal, structured
+- Limited colors (2–3)
+- No decorative metaphors
+- No chaos
+- No characters unless strictly necessary
 
-Visual tone:
-- Intelligent
-- Confident
-- Opinionated
-- Engineer-first
-
-Include subtle software engineering cues:
-- Code symbols
-- Graphs or curves
-- Nodes, arrows, stacks
-- Performance indicators
-
-Avoid:
-- Dense paragraphs
-- Academic diagrams
-- Monochrome visuals
-- Generic stock art
-
-================================
-COMPOSITION RULES
-================================
-- Title must be readable on mobile
-- Clear focal point
-- Strong contrast between elements
-- Text should guide the eye, not dominate
+This is a teaching diagram, not an illustration.
 
 ================================
 BRANDING
 ================================
-- Subtle footer or corner text:
-  "LinkedInVibe | Software Engineering"
-- Branding must stay secondary
+Small footer:
+"LinkedInVibe | Software Engineering"
 
 ================================
 OUTPUT FORMAT
 ================================
-Return a SINGLE detailed image-generation prompt.
+Return ONE precise image-generation prompt.
 Do NOT explain.
 Do NOT add commentary.
 `;
@@ -763,9 +753,10 @@ Do NOT add commentary.
 
     return (
         data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Colorful tech illustration with a bold title, minimal subtext, and clear software engineering insight."
+        "Minimal teaching diagram explaining a single software engineering concept with labeled causality."
     );
 }
+
 
 async function generateImageWithGemini(apiKey, imagePrompt) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;

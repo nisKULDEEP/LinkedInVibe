@@ -263,45 +263,46 @@ const mainMenuDiv = document.getElementById('mainMenu');
             chrome.storage.local.set({ 
                 customTopic: customTopic,
                 scrapeRecentPosts: scrapeRecentPosts 
-            });
+            }, () => {
+                // Ensure prefs are saved BEFORE proceeding
+                if (delayMinutes > 0) {
+                    statusDiv.textContent = `Scheduled in ${delayMinutes} min...`;
+                    chrome.runtime.sendMessage({ 
+                        action: "schedule_post", 
+                        minutes: delayMinutes,
+                        username: savedUser,
+                        scrapeRecentPosts: scrapeRecentPosts
+                    }, (response) => {
+                        if(response && response.success) {
+                            statusDiv.textContent = `✅ Scheduled! Closing...`;
+                            setTimeout(() => window.close(), 1500);
+                        } else {
+                            statusDiv.textContent = 'Scheduling failed.';
+                        }
+                    });
+                    return;
+                }
 
-            if (delayMinutes > 0) {
-                statusDiv.textContent = `Scheduled in ${delayMinutes} min...`;
-                chrome.runtime.sendMessage({ 
-                    action: "schedule_post", 
-                    minutes: delayMinutes,
-                    username: savedUser,
-                    scrapeRecentPosts: scrapeRecentPosts
-                }, (response) => {
-                    if(response && response.success) {
-                        statusDiv.textContent = `✅ Scheduled! Closing...`;
-                        setTimeout(() => window.close(), 1500);
-                    } else {
-                        statusDiv.textContent = 'Scheduling failed.';
-                    }
-                });
-                return;
-            }
+                // Immediate Post
+                const targetUrl = `https://www.linkedin.com/in/${savedUser}/`;
+                chrome.storage.local.set({ autoScrape: true }, () => {
+                    statusDiv.textContent = 'Starting Magic Flow...';
+                    chrome.tabs.query({ url: "*://www.linkedin.com/*" }, (tabs) => {
+                        const exactTab = tabs.find(t => t.url.includes(targetUrl));
+                        const anyLiTab = tabs.find(t => t.url.includes("linkedin.com"));
+                        const tabToReuse = exactTab || anyLiTab;
 
-            // Immediate Post
-            const targetUrl = `https://www.linkedin.com/in/${savedUser}/`;
-            chrome.storage.local.set({ autoScrape: true }, () => {
-                statusDiv.textContent = 'Starting Magic Flow...';
-                chrome.tabs.query({ url: "*://www.linkedin.com/*" }, (tabs) => {
-                    const exactTab = tabs.find(t => t.url.includes(targetUrl));
-                    const anyLiTab = tabs.find(t => t.url.includes("linkedin.com"));
-                    const tabToReuse = exactTab || anyLiTab;
-
-                    if (tabToReuse) {
-                        chrome.tabs.update(tabToReuse.id, { url: targetUrl, active: true }, () => {
-                             chrome.tabs.reload(tabToReuse.id); 
-                             window.close();
-                        });
-                    } else {
-                        chrome.tabs.create({ url: targetUrl }, () => {
-                             window.close();
-                        });
-                    }
+                        if (tabToReuse) {
+                            chrome.tabs.update(tabToReuse.id, { url: targetUrl, active: true }, () => {
+                                chrome.tabs.reload(tabToReuse.id); 
+                                window.close();
+                            });
+                        } else {
+                            chrome.tabs.create({ url: targetUrl }, () => {
+                                window.close();
+                            });
+                        }
+                    });
                 });
             });
         });

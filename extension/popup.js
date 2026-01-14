@@ -227,7 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const modelCosts = {
         'gemini-3-flash-preview': 'Cost: $0.50 / 1M tokens (Recommended)',
         'gemini-3-pro-preview': 'Cost: $2.00 / 1M tokens (High Accuracy)',
-        'gemini-2.5-flash-lite-preview-09-2025': 'Cost: $0.10 / 1M tokens (Lowest Cost)'
+        'gemini-2.5-flash-lite-preview-09-2025': 'Cost: $0.10 / 1M tokens (Lowest Cost)',
+        'gemini-2.5-flash': 'Cost: Free (Rate Limited) - No Image Generation'
     };
 
     // Load saved model preference

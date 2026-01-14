@@ -381,20 +381,23 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
         let imageBase64 = null;
 
         if (mode === 'pro') {
-            // TODO: Implement Backend Image Gen Endpoint. 
-            // For now, we return text only or mock it.
-            // OR: We send a second request to backend for image.
+            // TODO: Backend Image Gen Endpoint. 
             sendStatus(sender.tab.id, "Text ready! (Image gen requires local key for now in MVP)");
-            // Temporarily skip image for Pro until backend supports it
         } else {
             // BYOK - Use Local Key
-            sendStatus(sender.tab.id, "Text ready! Creating image...");
-            try {
-                const imagePrompt = await generateImagePrompt(geminiApiKey, formattedText);
-                imageBase64 = await generateImageWithGemini(geminiApiKey, imagePrompt);
-            } catch (e) {
-                console.error("Image Gen Failed", e);
-                sendStatus(sender.tab.id, "Image gen failed, using text only.");
+            if (selectedModel === 'gemini-2.5-flash') {
+                console.log("ℹ️ Skipping image generation for Free Tier model.");
+                sendStatus(sender.tab.id, "Text ready! (Image skipped for Free Tier)");
+            } else {
+                sendStatus(sender.tab.id, "Text ready! Creating image...");
+                try {
+                    const imagePrompt = await generateImagePrompt(geminiApiKey, formattedText);
+                    imageBase64 = await generateImageWithGemini(geminiApiKey, imagePrompt);
+                } catch (e) {
+                    console.error("Image Gen Failed", e);
+                    sendStatus(sender.tab.id, "Image gen failed, using text only.");
+                    // Soft fail: do not throw, just continue with null imageBase64
+                }
             }
         }
 

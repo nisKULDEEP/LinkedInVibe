@@ -329,7 +329,7 @@ function handleDownload(data, sendResponse) {
 // Main Entry Point for Generation
 async function generatePost(scrapedPosts, sender, sendResponse) {
     try {
-        const { authMode, geminiApiKey, authToken, userProfile, customTopic, autoPilotPost } = await chrome.storage.local.get(['authMode', 'geminiApiKey', 'authToken', 'userProfile', 'customTopic', 'autoPilotPost']);
+        const { authMode, geminiApiKey, authToken, userProfile, customTopic, autoPilotPost, selectedModel } = await chrome.storage.local.get(['authMode', 'geminiApiKey', 'authToken', 'userProfile', 'customTopic', 'autoPilotPost', 'selectedModel']);
 
         // Default to BYOK if not set
         const mode = authMode || 'byok';
@@ -362,7 +362,7 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
                 return;
             }
             sendStatus(sender.tab.id, "Generating with your Gemini Key...");
-            generatedText = await generatePostWithGeminiDirect(systemPrompt, geminiApiKey);
+            generatedText = await generatePostWithGeminiDirect(systemPrompt, geminiApiKey, selectedModel);
         }
 
         // 3. Post-Process Text (Markdown -> Unicode)
@@ -447,8 +447,9 @@ async function generatePostWithBackend(systemPrompt, userMessage, token) {
     return data.text;
 }
 
-async function generatePostWithGeminiDirect(systemPrompt, apiKey) {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+async function generatePostWithGeminiDirect(systemPrompt, apiKey, modelName) {
+    const model = modelName || 'gemini-3-flash-preview'; // Default fallback
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

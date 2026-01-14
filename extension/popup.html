@@ -95,7 +95,7 @@
           <h2>Create New Post</h2>
       </div>
 
-      <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #444; background: #f3f4f6; padding: 8px; rounded: 6px;">
+      <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #444; background: #f3f4f6; padding: 8px; border-radius: 6px;">
           <input type="checkbox" id="scrapePostsCheckbox" checked style="accent-color: #0a66c2; width: 14px; height: 14px;">
           <label for="scrapePostsCheckbox" style="cursor: pointer;">Scrape Recent Posts (Last 10)</label>
       </div>
@@ -103,6 +103,16 @@
       <button id="autoScrapeBtn" class="primary-btn">✨ Generate Magic Post</button>
       
       <div style="margin-top: 15px; width: 100%; text-align: left;">
+          <label style="font-size: 12px; font-weight: 500; color: #555;">AI Model:</label>
+          <select id="modelSelector" style="padding: 5px; border-radius: 6px; border: 1px solid #ccc; width: 100%; margin-bottom: 5px; font-size: 12px;">
+              <option value="gemini-3-flash-preview">Gemini 3 Flash (Balanced) - ⚡️⚡️</option>
+              <option value="gemini-3-pro-preview">Gemini 3 Pro (Best Quality) - 🧠🧠🧠</option>
+              <option value="gemini-2.5-flash-lite-preview-09-2025">Gemini 2.5 Flash Lite (Fastest) - ⚡️⚡️⚡️</option>
+          </select>
+          <div id="costDisplay" style="font-size: 10px; color: #666; margin-bottom: 10px; padding: 4px 8px; background: #f0f9ff; border-radius: 4px; border-left: 3px solid #0ea5e9;">
+              Cost: $0.50 / 1M tokens (Recommended)
+          </div>
+
           <label style="font-size: 12px; font-weight: 500; color: #555;">Custom Topic (Optional)</label>
           <textarea id="customTopic" rows="2" placeholder="e.g. 'React 19 features' or 'My journey as a startup founder'"></textarea>
           

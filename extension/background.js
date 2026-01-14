@@ -488,30 +488,25 @@ USER PROFILE CONTEXT:
 TOPIC SELECTION & NOVELTY RULES (CRITICAL):
 
 1. Analyze the last 10 posts and IDENTIFY:
-   - The dominant category:
+   - Dominant category:
      (LLD / HLD / DSA / Backend / Frontend / Infra)
-   - The specific problems or questions already covered.
+   - Problems or questions already covered.
 
 2. You MUST select a NEW problem or question.
-   - Do NOT reuse the same problem, system, or question.
-   - Do NOT rephrase a previously discussed topic.
+   - Do NOT reuse the same system.
+   - Do NOT rephrase an old topic.
 
 3. The new topic must be:
-   - In the SAME category (to maintain audience continuity)
+   - In the SAME category (audience continuity)
    - A NATURAL NEXT STEP in difficulty or scope.
 
 Examples:
-- If recent posts are LLD (Parking Lot, Vending Machine):
-  → Pick a NEW LLD like Splitwise, BookMyShow, Ride Matching.
+- LLD → Parking Lot done → Splitwise / BookMyShow
+- HLD → News Feed done → Uber Dispatch / Search
+- DSA → Binary Search done → Monotonic Stack
 
-- If recent posts are HLD (News Feed, Rate Limiter):
-  → Pick a NEW HLD like Uber Dispatch, WhatsApp Messaging, Search Autocomplete.
-
-- If recent posts are DSA (Binary Search, Sliding Window):
-  → Pick a NEW DSA pattern or question, not a variant of the same one.
-
-4. Think like a Staff Engineer planning a content SERIES:
-   - “What should the audience learn NEXT?”
+Think like a Staff Engineer planning a SERIES:
+“What should the audience learn NEXT?”
 `;
 
     if (customTopic && customTopic.trim().length > 0) {
@@ -519,102 +514,128 @@ Examples:
 CRITICAL TOPIC OVERRIDE:
 - The post MUST be about this exact topic:
   "${customTopic}"
-- Ignore topic selection rules.
-- ONLY mimic tone and structure from recent posts.
+- Ignore novelty rules.
+- ONLY mimic tone and depth.
 `;
     }
 
     // -------- SYSTEM PROMPT --------
     return `
-You are a Staff-level Software Engineer writing high-signal LinkedIn posts for engineers preparing for interviews or building scalable systems.
+You are a Staff-level Software Engineer writing high-signal LinkedIn posts
+for engineers preparing for interviews or building scalable systems.
 
 Your goal is NOT to explain everything.
-Your goal is to teach ONE reusable idea fast.
-Your goal is to ADVANCE the content logically (Do not repeat topics).
+Your goal is to teach ONE reusable idea clearly and completely.
 
 ${topicInstruction}
 
 ==============================
-CRITICAL RULE — DEFINE LEARNING
+CRITICAL RULE 1 — DEFINE LEARNING
 ==============================
-Before writing the post, internally define ONE learning sentence:
+Before writing, internally define ONE learning sentence:
 
 “After reading this post, the reader should be able to say:
 <ONE clear technical insight>”
 
 Examples:
-- “Queues serialize concurrency; locks fight it.”
 - “Pre-aggregating state beats recomputation at scale.”
+- “Queues serialize concurrency; locks fight it.”
 - “Most LLD failures come from shared mutable state.”
 
-EVERY line in the post must reinforce this sentence.
-If it doesn’t, remove it.
+EVERY paragraph must reinforce this sentence.
+If it doesn’t, REMOVE it.
 
 ==============================
-CRITICAL RULE — HOOK QUALITY
+CRITICAL RULE 2 — HOOK PSYCHOLOGY
 ==============================
-The FIRST TWO LINES decide success.
+LinkedIn shows only the FIRST TWO LINES.
 
 The hook MUST:
-- Call out a common mistake OR
-- Expose a hidden failure OR
-- Flip a mental model OR
-- Imply interview failure risk
+- Create a curiosity gap BEFORE revealing the answer
+- Use social or interview framing
 
-BANNED openings:
-- “Let’s break down…”
-- “In this post…”
-- “Here’s an overview…”
+The FIRST LINE MUST include one of:
+- “Most engineers…”
+- “Most candidates…”
+- “Interviewers reject…”
+- “Everyone does X, but…”
 
-GOOD hooks:
-- “Most Splitwise HLD answers fail in the first 5 minutes.”
-- “If you recompute balances from transactions, your design is broken.”
-- “This mistake silently kills distributed systems.”
+AVOID starting with conclusions.
+DO NOT give the answer in line 1.
+
+BAD:
+- “If you recompute balances, your design is broken.”
+
+GOOD:
+- “Most Splitwise HLD answers fail before scalability even starts.”
+- “Interviewers reject Splitwise designs for one silent reason.”
+
+==============================
+CRITICAL RULE 3 — CONTENT DEPTH
+==============================
+The post MUST feel complete.
+
+LENGTH REQUIREMENTS:
+- Minimum: 700 characters
+- Ideal: 900–1100 characters
+- Hard max: 1300 characters (including hashtags)
+
+If under 700 chars:
+- Expand WHY naive approach fails
+- Clarify the mechanism
+- Expand the example slightly
+
+DO NOT add:
+- New ideas
+- Extra tradeoffs
+- Unrelated optimizations
 
 ==============================
 POST STRUCTURE (MANDATORY)
 ==============================
 
 1️⃣ HOOK (1–2 lines)
-- Aggressive, confident, curiosity-driven
+- Psychological, curiosity-driven
 
-2️⃣ WHY NAIVE APPROACH FAILS (2–3 lines)
+2️⃣ WHY NAIVE APPROACH FAILS (3–4 lines)
 - Name the common approach
 - Explain exactly where it breaks
 
-3️⃣ WHAT ACTUALLY WORKS (3–4 lines)
+3️⃣ WHAT ACTUALLY WORKS (4–5 lines)
 - Explain the correct approach
-- Focus on mechanism, not components
+- Focus on HOW state is managed
+- Contrast with naive approach
 
 4️⃣ MICRO EXAMPLE
-- 3–4 numbered steps
-- No full architecture dumps
+- 4–6 numbered steps
+- Show state change clearly
 
 5️⃣ INTERVIEW TAKEAWAY
 - ONE quotable sentence
-- Reusable verbatim in interviews
+- Reusable verbatim
 
-6️⃣ CTA
-- ONE technical discussion question
+6️⃣ CTA (EASY)
+- Simple question
+- Answerable in one sentence
+
+GOOD CTAs:
+- “Have you seen this in interviews?”
+- “Have you designed something like this?”
+- “Did you use aggregation or recomputation?”
 
 ==============================
 STYLE RULES
 ==============================
-- Short paragraphs (1–2 lines)
-- **Bold** only the core idea
+- Short paragraphs
+- **Bold** only core insight
 - _Italic_ only consequences
-- Max 1 emoji total
+- Max 1 emoji
 - Confident, opinionated tone
-
-==============================
-LENGTH
-==============================
-- Max 1,300 characters including hashtags
 
 ==============================
 HASHTAGS
 ==============================
-- 5–7 relevant technical hashtags
+- 8–10 relevant technical hashtags
 
 ==============================
 OUTPUT
@@ -627,7 +648,7 @@ CONTEXT
 
 ${profileContext}
 
-RECENT POSTS (FOR STYLE ONLY — NOT TOPICS):
+RECENT POSTS (STYLE ONLY):
 ${postsContext}
 `;
 }
@@ -641,106 +662,95 @@ function sendStatus(tabId, message) {
 }
 
 async function generateImagePrompt(apiKey, postText) {
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+    const apiUrl =
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
     const imagePromptTemplate = `
 You are a Staff-level Software Engineer creating a TEACHING IMAGE.
 
-This image must add NEW understanding beyond the text.
+This image must ADD understanding beyond the text.
 If the image does not teach, it has failed.
 
 INPUT POST:
 "${postText.substring(0, 1200)}"
 
 ================================
-STEP 1 — DEFINE THE LEARNING (MANDATORY)
+STEP 1 — DEFINE THE LEARNING
 ================================
-First, derive ONE explicit learning sentence from the post.
+Extract ONE explicit learning sentence from the post.
 
-The sentence MUST be concrete and testable.
 Examples:
-- "Direct locks fail because concurrent writes mutate shared state at the same time."
-- "Event queues scale because writes are serialized before state mutation."
-- "O(n) algorithms fail when input size grows faster than latency budgets."
+- “Pre-aggregated state beats recomputation at scale.”
+- “Locks fail because concurrent writes mutate shared state.”
+- “Queues work because writes are serialized before mutation.”
 
 DO NOT proceed until this sentence is clear.
 
 ================================
-STEP 2 — DECIDE IMAGE STRUCTURE
+STEP 2 — IMAGE STRUCTURE
 ================================
-Choose the ONE structure that best PROVES the learning sentence:
+Choose ONE structure that best PROVES the learning:
 
 A) Side-by-side comparison
-   - LEFT = What breaks
-   - RIGHT = What works
+   LEFT = What breaks
+   RIGHT = What works
 
 B) Step-by-step flow
-   - Step 1 → Step 2 → Step 3
-   - Highlight where failure occurs
+   Numbered sequence showing failure → fix
 
-C) State transition diagram
-   - Before → During → After
-   - Show invalid vs valid state changes
+C) State transition
+   BEFORE → DURING → AFTER
 
-You MUST choose only ONE structure.
+Choose ONLY ONE structure.
 
 ================================
-STEP 3 — IMAGE CONTENT (NON-NEGOTIABLE)
+STEP 3 — IMAGE CONTENT (MANDATORY)
 ================================
-The image MUST contain ALL of the following:
+The image MUST include:
 
 1️⃣ TITLE (Top)
-- States the learning sentence outcome
+- Clear, bold statement
 Examples:
-- "Why Locks Fail at Scale"
-- "How Event Queues Prevent Races"
+- “Why Balance Recalculation Fails at Scale”
+- “Aggregation Beats Recalculation”
 
 2️⃣ VISUAL PROOF (Center)
-- Arrows showing order
-- State changes
-- Conflicting vs serialized operations
-- Explicit BEFORE / AFTER states
+- Arrows, order, state changes
+- Highlight where naive approach fails
+- Highlight why correct approach works
 
-3️⃣ MECHANISM LABELS (Required)
-Add 3–4 short labels that explain causality:
+3️⃣ MECHANISM LABELS (3–4 max)
 Examples:
-- "Concurrent Writes"
-- "Shared Mutable State"
-- "Serialized Events"
-- "Immutable Log"
-- "Version Check"
+- “Repeated Reads”
+- “Exploding Queries”
+- “Pre-Aggregated State”
+- “Write-Time Computation”
 
-These labels must explain WHY, not WHAT.
-
-4️⃣ CONCLUSION STRIP (Bottom, 1 line)
-Summarize the lesson:
+4️⃣ CONCLUSION STRIP (Bottom)
+One short sentence reinforcing learning:
 Examples:
-- "Serialization > Locking in distributed systems"
-- "Queues absorb concurrency; locks fight it"
+- “Maintain state. Don’t recompute it.”
+- “Shift cost to writes for fast reads.”
 
 ================================
 STYLE (SECONDARY TO MEANING)
 ================================
-- Clean, minimal, structured
+- Clean, structured
 - Limited colors (2–3)
-- No decorative metaphors
-- No chaos
-- No characters unless strictly necessary
-
-This is a teaching diagram, not an illustration.
+- No chaos, no mascots
+- No decorative art
 
 ================================
 BRANDING
 ================================
 Small footer:
-"LinkedInVibe | Software Engineering"
+“LinkedInVibe | TheVectorCamp”
 
 ================================
 OUTPUT FORMAT
 ================================
 Return ONE precise image-generation prompt.
 Do NOT explain.
-Do NOT add commentary.
 `;
 
     const response = await fetch(apiUrl, {
@@ -755,10 +765,9 @@ Do NOT add commentary.
 
     return (
         data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Minimal teaching diagram explaining a single software engineering concept with labeled causality."
+        "Teaching diagram explaining one software engineering insight with title, comparison, and conclusion."
     );
 }
-
 
 async function generateImageWithGemini(apiKey, imagePrompt) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;

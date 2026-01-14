@@ -258,14 +258,20 @@ const mainMenuDiv = document.getElementById('mainMenu');
                 delayMinutes = parseInt(selectValue, 10);
             }
             
-            chrome.storage.local.set({ customTopic: customTopic });
+            const scrapeRecentPosts = document.getElementById('scrapePostsCheckbox').checked;
+            
+            chrome.storage.local.set({ 
+                customTopic: customTopic,
+                scrapeRecentPosts: scrapeRecentPosts 
+            });
 
             if (delayMinutes > 0) {
                 statusDiv.textContent = `Scheduled in ${delayMinutes} min...`;
                 chrome.runtime.sendMessage({ 
                     action: "schedule_post", 
                     minutes: delayMinutes,
-                    username: savedUser
+                    username: savedUser,
+                    scrapeRecentPosts: scrapeRecentPosts
                 }, (response) => {
                     if(response && response.success) {
                         statusDiv.textContent = `✅ Scheduled! Closing...`;

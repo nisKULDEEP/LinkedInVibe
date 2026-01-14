@@ -33,16 +33,40 @@ chrome.storage.local.get(['autoScrape', 'scrapedDataForGeneration'], (result) =>
         
         // Wait for elements to load
         setTimeout(() => {
-            const profileData = scrapeProfileData();
-            console.log("Profile Data:", profileData);
-            
-            chrome.storage.local.set({ userProfile: profileData }, () => {
-                updateOverlay("Profile extracted! Going to Activity...");
-                // Construct Activity URL
-                // If url ends with /, append recent-activity/all/
-                // If not, append /recent-activity/all/
-                let activityUrl = currentUrl.replace(/\/$/, "") + "/recent-activity/all/";
-                window.location.href = activityUrl;
+            // Check for toggle preference (defaults to true if missing)
+            chrome.storage.local.get(['scrapeRecentPosts'], (prefs) => {
+                const shouldScrapePosts = prefs.scrapeRecentPosts !== false; // Default true
+                console.log("Scraping Preference: Posts =", shouldScrapePosts);
+
+                const profileData = scrapeProfileData();
+                console.log("Final Profile Data:", profileData);
+                
+                chrome.storage.local.set({ userProfile: profileData }, () => {
+                    
+                    if (shouldScrapePosts) {
+                        updateOverlay("Profile extracted! Going to Activity...");
+                        // Construct Activity URL
+                        let activityUrl = currentUrl.replace(/\/$/, "") + "/recent-activity/all/";
+                        window.location.href = activityUrl;
+                    } else {
+                        updateOverlay("Profile extracted! Skiping posts...");
+                        console.log("Skipping post scraping. Redirecting to Feed...");
+                        
+                        // Prepare data for generation directly (without posts)
+                        const generationData = [
+                             // Format it as expected by background.js (usually array of posts, but we have none)
+                             // Actually, based on background.js, it expects `scrapedData` which is usually the array of posts.
+                             // But we need to pass profile data too. 
+                             // Wait, look at logic: 
+                             // background.js reads `userProfile` from storage independently.
+                             // `scrapedDataForGeneration` is usually the POSTS array.
+                        ];
+
+                        chrome.storage.local.set({ scrapedDataForGeneration: generationData, autoScrape: false }, () => {
+                             window.location.href = "https://www.linkedin.com/feed/";
+                        });
+                    }
+                });
             });
         }, 1500); // Small delay for rendering
         return;
@@ -111,19 +135,36 @@ function scrapeProfileData() {
         let experience = "";
         const expHeader = headings.find(h => h.innerText.includes("Experience"));
         if (expHeader) {
+            console.log("✅ Experience Header Found");
             const expSection = expHeader.closest('section');
             if (expSection) {
                 // Get list items (roles)
+                // LinkedIn structure varies. Try generic list items first.
                 const items = expSection.querySelectorAll('li.artdeco-list__item');
-                // Take top 3 roles
-                const topItems = Array.from(items).slice(0, 3);
-                experience = topItems.map(item => {
-                    // Extract Role and Company text only (exclude dates/locations if messy, but simple innerText is usually readable enough)
-                    // We clean up slightly to remove 'Show 1 more role' type noise
-                    return item.innerText.split('\n').filter(line => line.length > 3).join(' - ');
-                }).join('\n');
+                console.log(`ℹ️ Found ${items.length} experience items potential`);
+
+                if (items.length > 0) {
+                     // Take top 3 roles
+                    const topItems = Array.from(items).slice(0, 3);
+                    experience = topItems.map((item, index) => {
+                        // Extract Role and Company text only
+                        // We clean up slightly to remove 'Show 1 more role' type noise or dates if messy
+                        const text = item.innerText.split('\n')
+                            .filter(line => line.trim().length > 3 && !line.includes("Show more"))
+                            .join(' - ');
+                        
+                        console.log(`➡️ Extracted Role ${index+1}:`, text.substring(0, 50) + "...");
+                        return text;
+                    }).join('\n');
+                } else {
+                    console.warn("⚠️ Experience section found but no list items detected.");
+                }
             }
+        } else {
+            console.warn("❌ Experience Header NOT Found");
         }
+
+        console.log("📝 Final Experience Data Length:", experience.length);
 
         return { name, headline, about, experience };
     } catch (e) {

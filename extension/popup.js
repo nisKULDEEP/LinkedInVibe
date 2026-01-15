@@ -228,7 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'gemini-3-flash-preview': 'Cost: $0.50 / 1M tokens (Recommended)',
         'gemini-3-pro-preview': 'Cost: $2.00 / 1M tokens (High Accuracy)',
         'gemini-2.5-flash-lite-preview-09-2025': 'Cost: $0.10 / 1M tokens (Lowest Cost)',
-        'gemini-2.5-flash': 'Cost: Free (Rate Limited) - No Image Generation'
+        'gemini-2.5-flash': 'Cost: Free (Rate Limited) - No Image Generation',
+        'local-z-image': 'Cost: Free (Uses your Mac GPU) 🏠'
     };
 
     // Load saved model preference
@@ -242,6 +243,15 @@ document.addEventListener('DOMContentLoaded', () => {
     modelSelector.addEventListener('change', () => {
         const selected = modelSelector.value;
         costDisplay.textContent = modelCosts[selected];
+
+        if (selected === 'local-z-image') {
+            document.getElementById('localSetupModal').style.display = 'block';
+        }
+    });
+
+    // Modal Close
+    document.getElementById('closeLocalModal').addEventListener('click', () => {
+        document.getElementById('localSetupModal').style.display = 'none';
     });
 
     scheduleSelect.addEventListener('change', () => {

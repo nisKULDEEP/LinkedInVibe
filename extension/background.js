@@ -388,6 +388,34 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
             if (selectedModel === 'gemini-2.5-flash') {
                 console.log("ℹ️ Skipping image generation for Free Tier model.");
                 sendStatus(sender.tab.id, "Text ready! (Image skipped for Free Tier)");
+
+            } else if (selectedModel === 'local-z-image') {
+                sendStatus(sender.tab.id, "Text ready! Local Z-Image warming up... (First run takes time 🐢)");
+                try {
+                    // Helper to gen prompt using Gemini if key exists
+                    const imagePrompt = await generateImagePrompt(geminiApiKey, formattedText);
+
+                    // Call Local Backend (Must be running locally on 3000)
+                    const localResponse = await fetch('http://localhost:3000/api/generate-image-local', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ prompt: imagePrompt })
+                    });
+
+                    const localData = await localResponse.json();
+                    if (localData.success) {
+                        imageBase64 = localData.imageBase64;
+                    } else {
+                        throw new Error(localData.error || "Local generation failed");
+                    }
+
+                } catch (e) {
+                    console.error("Local Image Gen Failed", e);
+                    sendStatus(sender.tab.id, "Local Gen failed: " + e.message);
+                }
             } else {
                 sendStatus(sender.tab.id, "Text ready! Creating image...");
                 try {
@@ -396,7 +424,6 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
                 } catch (e) {
                     console.error("Image Gen Failed", e);
                     sendStatus(sender.tab.id, "Image gen failed, using text only.");
-                    // Soft fail: do not throw, just continue with null imageBase64
                 }
             }
         }

@@ -30,3 +30,7 @@ yarn-error.log*
 
 # Supabase
 supabase/functions/*/deno.lock
+
+# Secrets
+extension/config.js
+config.js

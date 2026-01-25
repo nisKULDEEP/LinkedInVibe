@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "LinkedInVibe",
-    "version": "1.0",
-    "description": "Scrapes the top 10 posts from your LinkedIn feed.",
+    "version": "1.2",
+    "description": "Your All-in-One LinkedIn AI Assistant: Viral Post Generator, Auto-Applier, and Job Search Helper.",
     "permissions": [
         "activeTab",
         "scripting",

@@ -1,3 +1,6 @@
+// Load configuration
+importScripts('config.js');
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "download_data") {
         handleDownload(request.data, sendResponse);
@@ -128,9 +131,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-// Supabase config for token refresh
-const SUPABASE_URL = 'https://nplvpyrjtkqjopslwvqa.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wbHZweXJqdGtxam9wc2x3dnFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjQxNDEsImV4cCI6MjA2NTIwMDE0MX0.fFLbRlBBKaRn3fKpKlb5l18p5aNXMnVcmhc0W6HExyY';
+// Supabase config loaded from config.js
 
 async function refreshAccessToken(refreshToken) {
     if (!navigator.onLine) {

@@ -114,7 +114,7 @@ export default function Home() {
                   className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition shadow-md"
                 >
                   <Chrome className="w-4 h-4" />
-                  Download .zip
+                  Download v1.2 .zip
                 </a>
               </div>
             </div>

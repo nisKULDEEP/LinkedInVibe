@@ -38,6 +38,58 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         return true;
     }
+
+    // --- AI FORM FILLING ---
+    if (request.action === "analyze_form_with_gemini") {
+        const { formContext, modelName } = request;
+        chrome.storage.local.get(['geminiApiKey', 'candidateProfile'], (res) => {
+            if (!res.geminiApiKey) {
+                sendResponse({ success: false, error: "No API Key" });
+                return;
+            }
+            if (!res.candidateProfile) {
+                sendResponse({ success: false, error: "No Profile Data" });
+                return;
+            }
+
+            analyzeFormWithGemini(res.geminiApiKey, res.candidateProfile, formContext, modelName)
+                .then(mapping => sendResponse({ success: true, mapping }))
+                .catch(err => sendResponse({ success: false, error: err.message }));
+        });
+        return true;
+    }
+
+    // --- BOT AI QUESTION ANSWERING ---
+    if (request.action === "bot_ask_ai") {
+        const { questions, jobDescription, profile } = request; // Use passed profile or fetch from storage
+
+        chrome.storage.local.get(['geminiApiKey', 'candidateProfile'], (res) => {
+            const apiKey = res.geminiApiKey;
+            const userProfile = profile || res.candidateProfile;
+
+            if (!apiKey) {
+                sendResponse({ success: false, error: "No API Key" });
+                return;
+            }
+
+            // Reuse analyzeFormWithGemini but with JD context
+            analyzeFormWithGemini(apiKey, userProfile, questions, "gemini-2.5-flash-lite", jobDescription)
+                .then(answers => sendResponse({ success: true, answers }))
+                .catch(err => sendResponse({ success: false, error: err.message }));
+        });
+        return true;
+    }
+    // --- NOTIFICATIONS ---
+    if (request.action === "notify_user") {
+        const { title, message } = request;
+        chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icon.png',
+            title: title || 'LinkedInVibe Bot',
+            message: message || 'Attention required!'
+        });
+        return true;
+    }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -76,40 +128,74 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-// Token refresh via Backend (No Supabase Creds in Extension)
-async function refreshAccessToken(refreshToken) {
-    try {
-        console.log("🔑 Calling Backend refresh endpoint...");
-        // Use production URL
-        const BACKEND_URL = 'https://linkedinvibe.onrender.com/api/refresh-token';
+// Supabase config for token refresh
+const SUPABASE_URL = 'https://nplvpyrjtkqjopslwvqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wbHZweXJqdGtxam9wc2x3dnFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjQxNDEsImV4cCI6MjA2NTIwMDE0MX0.fFLbRlBBKaRn3fKpKlb5l18p5aNXMnVcmhc0W6HExyY';
 
-        const response = await fetch(BACKEND_URL, {
+async function refreshAccessToken(refreshToken) {
+    if (!navigator.onLine) {
+        console.warn("⚠️ Token refresh skipped: Application is offline.");
+        return { token: null, errorType: 'network' };
+    }
+
+    try {
+        console.log("🔑 Calling Supabase refresh endpoint...");
+        // Ensure no double slashes if variable changes
+        const endpoint = `${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/token?grant_type=refresh_token`;
+
+        const response = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY
+            },
             body: JSON.stringify({ refresh_token: refreshToken })
         });
 
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error(`❌ Token refresh HTTP error: ${response.status}`, errText);
+            // 4xx errors usually mean the token is invalid/revoked -> Auth Error
+            // 5xx errors -> Server Error (Network-like)
+            if (response.status >= 400 && response.status < 500) {
+                return { token: null, errorType: 'auth' };
+            } else {
+                return { token: null, errorType: 'network' };
+            }
+        }
+
         const data = await response.json();
 
-        if (data.success && data.access_token) {
+        if (data.access_token && data.refresh_token) {
             // Store the new tokens
             await chrome.storage.local.set({
                 authToken: data.access_token,
-                refreshToken: data.refresh_token || refreshToken // Use new or fallback to old
+                refreshToken: data.refresh_token
             });
             console.log("✅ New tokens saved to storage.");
-            return data.access_token;
+            return { token: data.access_token, errorType: null };
         } else {
-            console.error("❌ Refresh failed:", data.error);
-            return null;
+            console.error("❌ Refresh response missing tokens:", data);
+            return { token: null, errorType: 'auth' }; // Unexpected structure, treat as auth fail
         }
     } catch (e) {
-        console.error("❌ Refresh Network Error:", e);
-        return null;
+        // Check if it's a "Failed to fetch" which often implies Network Error or CORS
+        if (e.message.includes("Failed to fetch")) {
+            console.warn("⚠️ Token refresh failed (Network/Server unreachable). Will retry.");
+            return { token: null, errorType: 'network' };
+        }
+
+        console.error("❌ Token refresh unexpected error:", e);
+        return { token: null, errorType: 'network' }; // unknown error, safe to retry?
     }
 }
 
 async function checkAndExecuteSchedule() {
+    if (!navigator.onLine) {
+        console.log("⚠️ Polling skipped because browser is offline.");
+        return;
+    }
+
     console.log(`🕒 Polling Scheduler at ${new Date().toLocaleTimeString()}...`);
     const result = await chrome.storage.local.get(['authToken', 'refreshToken', 'linkedinUsername', 'failedRetries']);
     let authToken = result.authToken;
@@ -141,17 +227,21 @@ async function checkAndExecuteSchedule() {
                 return;
             }
 
-            const newToken = await refreshAccessToken(refreshToken);
-            if (newToken) {
-                authToken = newToken;
+            const refreshResult = await refreshAccessToken(refreshToken);
+
+            if (refreshResult.token) {
+                authToken = refreshResult.token;
                 // Retry the request
                 console.log("✅ Token refreshed! Retrying request...");
                 response = await fetch(BACKEND_URL, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 data = await response.json();
+            } else if (refreshResult.errorType === 'network') {
+                console.warn("⚠️ Token refresh failed due to network. Skipping this poll.");
+                return;
             } else {
-                console.error("❌ Token refresh failed. User must re-authenticate.");
+                console.error("❌ Token refresh failed (Invalid Refresh Token). User must re-authenticate.");
                 return;
             }
         }
@@ -229,7 +319,11 @@ async function checkAndExecuteSchedule() {
             }
         }
     } catch (e) {
-        console.error("🔥 Polling Error:", e.message || e, e.stack);
+        if (e.message.includes("Failed to fetch")) {
+            console.warn("⚠️ Network/Server unreachable during poll (Failed to fetch). Will retry next cycle.");
+        } else {
+            console.error("🔥 Polling Error:", e.message || e, e.stack);
+        }
     }
 }
 
@@ -329,7 +423,7 @@ function handleDownload(data, sendResponse) {
 // Main Entry Point for Generation
 async function generatePost(scrapedPosts, sender, sendResponse) {
     try {
-        const { authMode, geminiApiKey, authToken, userProfile, customTopic, autoPilotPost, selectedModel } = await chrome.storage.local.get(['authMode', 'geminiApiKey', 'authToken', 'userProfile', 'customTopic', 'autoPilotPost', 'selectedModel']);
+        const { authMode, geminiApiKey, authToken, userProfile, customTopic, autoPilotPost } = await chrome.storage.local.get(['authMode', 'geminiApiKey', 'authToken', 'userProfile', 'customTopic', 'autoPilotPost']);
 
         // Default to BYOK if not set
         const mode = authMode || 'byok';
@@ -362,7 +456,7 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
                 return;
             }
             sendStatus(sender.tab.id, "Generating with your Gemini Key...");
-            generatedText = await generatePostWithGeminiDirect(systemPrompt, geminiApiKey, selectedModel);
+            generatedText = await generatePostWithGeminiDirect(systemPrompt, geminiApiKey);
         }
 
         // 3. Post-Process Text (Markdown -> Unicode)
@@ -381,50 +475,20 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
         let imageBase64 = null;
 
         if (mode === 'pro') {
-            // TODO: Backend Image Gen Endpoint. 
+            // TODO: Implement Backend Image Gen Endpoint. 
+            // For now, we return text only or mock it.
+            // OR: We send a second request to backend for image.
             sendStatus(sender.tab.id, "Text ready! (Image gen requires local key for now in MVP)");
+            // Temporarily skip image for Pro until backend supports it
         } else {
             // BYOK - Use Local Key
-            if (selectedModel === 'gemini-2.5-flash') {
-                console.log("ℹ️ Skipping image generation for Free Tier model.");
-                sendStatus(sender.tab.id, "Text ready! (Image skipped for Free Tier)");
-
-            } else if (selectedModel === 'local-z-image') {
-                sendStatus(sender.tab.id, "Text ready! Local Z-Image warming up... (First run takes time 🐢)");
-                try {
-                    // Helper to gen prompt using Gemini if key exists
-                    const imagePrompt = await generateImagePrompt(geminiApiKey, formattedText);
-
-                    // Call Local Backend (Must be running locally on 3000)
-                    const localResponse = await fetch('http://localhost:3000/api/generate-image-local', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${authToken}`
-                        },
-                        body: JSON.stringify({ prompt: imagePrompt })
-                    });
-
-                    const localData = await localResponse.json();
-                    if (localData.success) {
-                        imageBase64 = localData.imageBase64;
-                    } else {
-                        throw new Error(localData.error || "Local generation failed");
-                    }
-
-                } catch (e) {
-                    console.error("Local Image Gen Failed", e);
-                    sendStatus(sender.tab.id, "Local Gen failed: " + e.message);
-                }
-            } else {
-                sendStatus(sender.tab.id, "Text ready! Creating image...");
-                try {
-                    const imagePrompt = await generateImagePrompt(geminiApiKey, formattedText);
-                    imageBase64 = await generateImageWithGemini(geminiApiKey, imagePrompt);
-                } catch (e) {
-                    console.error("Image Gen Failed", e);
-                    sendStatus(sender.tab.id, "Image gen failed, using text only.");
-                }
+            sendStatus(sender.tab.id, "Text ready! Creating image...");
+            try {
+                const imagePrompt = await generateImagePrompt(geminiApiKey, formattedText);
+                imageBase64 = await generateImageWithGemini(geminiApiKey, imagePrompt);
+            } catch (e) {
+                console.error("Image Gen Failed", e);
+                sendStatus(sender.tab.id, "Image gen failed, using text only.");
             }
         }
 
@@ -477,9 +541,8 @@ async function generatePostWithBackend(systemPrompt, userMessage, token) {
     return data.text;
 }
 
-async function generatePostWithGeminiDirect(systemPrompt, apiKey, modelName) {
-    const model = modelName || 'gemini-3-flash-preview'; // Default fallback
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+async function generatePostWithGeminiDirect(systemPrompt, apiKey) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -496,133 +559,147 @@ async function generatePostWithGeminiDirect(systemPrompt, apiKey, modelName) {
 }
 
 function constructSystemPrompt(scrapedPosts, userProfile, customTopic) {
-    let profileContext = `
-AUTHOR CONTEXT:
-- Name: ${userProfile?.name || "N/A"}
-- Username: ${userProfile?.username || ""}
-- Role: Staff-level Software Engineer
-`;
-
-    const postsContext = (scrapedPosts || [])
-        .slice(0, 10)
-        .map((p, i) => `Post ${i + 1}: "${p.text}"`)
-        .join("\n");
-
-    let topicInstruction = `
-TOPIC RULES:
-- Pick ONE new concept not covered recently
-- Stay in the same category (React / Frontend / HLD / LLD / Backend)
-- Teach ONE idea deeply
-`;
-
-    if (customTopic?.trim()) {
-        topicInstruction = `
-TOPIC OVERRIDE:
-- Use exactly: "${customTopic}"
+    // -------- USER PROFILE CONTEXT --------
+    let profileContext = "";
+    if (userProfile) {
+        profileContext = `
+USER PROFILE CONTEXT:
+- Name: ${userProfile.name || "N/A"}
+- Headline: ${userProfile.headline || "N/A"}
+- Experience Summary: ${userProfile.experience || "N/A"}
+- About (excerpt): ${userProfile.about ? userProfile.about.substring(0, 600) : "N/A"}
 `;
     }
 
+    // -------- RECENT POSTS CONTEXT --------
+    const postsContext = (scrapedPosts || [])
+        .slice(0, 10)
+        .map((p, i) => `Post ${i + 1}: "${p.text}" (Likes: ${p.likes || 0})`)
+        .join("\n");
+
+    // -------- TOPIC STRATEGY --------
+    let topicInstruction = `
+TOPIC SELECTION RULE:
+- Infer the user's technical niche from recent posts.
+- Select EXACTLY ONE core system-design concept.
+- The post must go deep on this single idea.
+- Do NOT list multiple components or cover the whole system.
+`;
+
+    if (customTopic && customTopic.trim().length > 0) {
+        topicInstruction = `
+CRITICAL TOPIC OVERRIDE:
+- The post MUST be about this exact topic:
+  "${customTopic}"
+- Ignore topics from recent posts.
+- You may ONLY mimic tone and structure from recent posts.
+`;
+    }
+
+    // -------- SYSTEM PROMPT --------
     return `
-You are writing a **high-performing LinkedIn engineering post**.
+You are a Staff-level Software Engineer and technical educator who writes viral LinkedIn posts that teach ONE deep system-design insight clearly and memorably.
 
-Your audience:
-- Working engineers
-- Interview candidates
-- Senior frontend/backend developers
+Your goal is NOT to summarize systems.
+Your goal is to upgrade the reader’s mental model.
 
+==============================
+YOUR TASK
+==============================
+1. Analyze the USER'S RECENT POSTS to understand tone, depth, and formatting.
+2. Use USER PROFILE CONTEXT to match seniority and domain language.
 ${topicInstruction}
+3. Choose ONE insight that:
+   - Appears in real-world large-scale systems
+   - Is commonly misunderstood in interviews
+   - Has a clear tradeoff (latency, cost, memory, compute, complexity)
 
 ==============================
-CRITICAL RULE 1 — HOOK QUALITY
+MANDATORY POST STRUCTURE
 ==============================
-The FIRST TWO LINES must:
-- Stop scrolling
-- Imply hidden knowledge OR risk OR paradigm shift
+Follow this structure EXACTLY:
 
-Allowed hook patterns:
-- “Most engineers don’t realize…”
-- “This looks simple, but breaks production…”
-- “If you’re still doing X, you’re already behind…”
+1️⃣ HOOK (1–2 lines)
+- Must trigger curiosity or mild controversy
+- Should force "See more"
 
-DO NOT start with neutral explanations.
+2️⃣ CONTEXT (2–3 lines)
+- Briefly define the real problem at scale
+- No generic definitions
 
-==============================
-CRITICAL RULE 2 — VISUAL SCANNABILITY
-==============================
-You MUST:
-- Use **bold** for key phrases
-- Use emojis as section anchors (2–4 total)
-- Keep paragraphs ≤ 2 lines
+3️⃣ CORE INSIGHT (MAIN BODY)
+- Explain ONE mechanism deeply
+- Explicitly answer:
+  • Why this approach exists
+  • Why the obvious alternative fails at scale
+  - Use cause → effect reasoning
 
-If a paragraph has no emphasis → rewrite it.
+4️⃣ CONCRETE EXAMPLE
+- Use numbered steps, a mini flow, or a short scenario
+- Keep it tangible and practical
 
-==============================
-POST STRUCTURE (MANDATORY)
-==============================
+5️⃣ CLOSING INSIGHT
+- A sharp takeaway that upgrades understanding
+- Something the reader can recall in interviews
 
-1️⃣ HOOK (1–2 lines, emoji allowed)
-
-2️⃣ REAL PROBLEM (2–3 lines)
-- Why engineers struggle with this today
-
-3️⃣ WHY OLD APPROACH BREAKS
-- Call out the common pattern
-- Explain the failure clearly
-
-4️⃣ WHAT CHANGED / WHAT WORKS NOW
-- Explain the new mental model
-- Focus on WHY, not syntax
-
-5️⃣ MICRO FLOW (numbered, 4–5 steps)
-- No full code
-- Logical steps only
-
-6️⃣ INTERVIEW / PRACTICAL TAKEAWAY
-- ONE quotable sentence
-- **Bold it**
-
-7️⃣ CTA + CREATOR SIGNATURE
-- Easy question
-- Follow line MUST include username
-
-CTA FORMAT (MANDATORY):
-Question line  
-Follow @<username> for more deep engineering breakdowns.
+6️⃣ CTA
+- Ask a technical question that invites discussion
 
 ==============================
-EMOJI RULES
+STRICT RULES (NON-NEGOTIABLE)
 ==============================
-- Max 4 emojis
-- Allowed: 🧠 ⚠️ 🚀 🔍
-- Emojis must guide reading, not decorate
+- Do NOT dump components (no laundry lists).
+- Do NOT explain the entire system.
+- Depth over breadth.
+- Assume the reader is an engineer.
+- No fluff, no motivational filler.
+- No buzzword stacking.
 
 ==============================
-LENGTH
+FORMATTING RULES
 ==============================
-- Min: 800 chars
-- Ideal: 900–1100 chars
-- Max: 1300 chars
+- **Bold** only key ideas or tradeoffs.
+- _Italic_ only to highlight consequences or constraints.
+- Max 1 emoji per section.
+- Short paragraphs (1–2 lines).
+- Bullet points ONLY for logic or flows.
+
+==============================
+LENGTH & VIRALITY CONSTRAINTS
+==============================
+- Max length: 1,400 characters INCLUDING hashtags.
+- First 2 lines must hook immediately.
+- Optimize for saves and thoughtful comments.
+
+==============================
+LANGUAGE
+==============================
+- English only
+- Confident, precise, opinionated
+- Clear technical reasoning
 
 ==============================
 HASHTAGS
 ==============================
-- 8–10 relevant hashtags
-- Add at the END only
+- Add 5–8 relevant technical hashtags at the end
+- Examples: #SystemDesign #BackendEngineering #Scalability #HLD
+
+==============================
+CONTEXT INPUTS
+==============================
+
+${profileContext}
+
+USER'S RECENT POSTS (STYLE REFERENCE ONLY):
+${postsContext}
 
 ==============================
 OUTPUT
 ==============================
 Return ONLY the final LinkedIn post text.
-
-==============================
-CONTEXT
-==============================
-${profileContext}
-
-RECENT POSTS (STYLE ONLY):
-${postsContext}
 `;
 }
+
 
 // Helper to send status updates to content script
 function sendStatus(tabId, message) {
@@ -631,141 +708,67 @@ function sendStatus(tabId, message) {
     }
 }
 
+// --- Image Helpers ---
 async function generateImagePrompt(apiKey, postText) {
-    const apiUrl =
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
-    const imagePromptTemplate = `
-You are creating a HIGH-SIGNAL LINKEDIN TEACHING IMAGE for software engineers.
+    const imagePromptTemplate = `You are an AI that converts a LinkedIn system-design post into a SINGLE, insight-driven technical illustration.
 
-This image must ADD VALUE even if the viewer does NOT read the post.
-
-If the image does not teach ONE clear idea in 5 seconds, it has failed.
-
-INPUT POST:
+INPUT:
 "${postText.substring(0, 1200)}"
 
-================================
-STEP 1 — DEFINE THE LEARNING (MANDATORY)
-================================
-Derive ONE explicit learning sentence from the post.
-
-The sentence MUST be concrete and opinionated.
+STEP 1 — Extract Core Insight:
+Identify the ONE main design concept the post explains.
 Examples:
-- "Pre-aggregated state beats recomputation at scale."
-- "Framework-managed async is safer than effect-driven async."
-- "Real-user metrics expose failures lab tools hide."
+- Fanout on Write vs Fanout on Read
+- Hybrid Fanout Model
+- Cache IDs vs Full Objects
+- Hotkey Problem
 
-This sentence MUST appear as the IMAGE TITLE.
+STEP 2 — Visual Mapping (MANDATORY):
+The image must visually explain THIS insight alone.
+Do NOT show full system architecture unless required.
 
-================================
-STEP 2 — CHOOSE IMAGE STRUCTURE
-================================
-Choose EXACTLY ONE structure:
+INSIGHT → VISUAL MAPPING RULES:
+- Fanout on Write vs Read:
+  • Split-diagram (LEFT = Push, RIGHT = Pull)
+  • Arrows showing compute vs latency tradeoff
+- Hybrid Fanout:
+  • Normal users = push
+  • Celebrities = pull
+  • Clear separation
+- Cache IDs:
+  • Memory blocks labeled "ID-only"
+  • Object blobs outside cache
+- Hotkey Problem:
+  • One node overloaded
+  • Heat/pressure indicators
 
-A) SIDE-BY-SIDE COMPARISON (Preferred)
-   LEFT  = Old / naive / problematic approach
-   RIGHT = New / correct / scalable approach
+STYLE:
+- Orthographic technical schematic
+- Flat 2D blueprint
+- White/cyan lines on deep blueprint blue (#004182)
+- Grid lines, measurement arrows, callouts
+- Labels like:
+  "WRITE-TIME COMPUTE"
+  "READ-TIME LATENCY"
+  "HOTKEY NODE"
 
-B) STEP FLOW
-   Step 1 → Step 2 → Step 3 → Result
+BRANDING:
+- Thin footer line
+- Text: "LinkedInVibe | System Design"
 
-C) STATE TRANSITION
-   Before → During → After
-
-DO NOT mix structures.
-
-================================
-STEP 3 — CONTENT RULES (CRITICAL)
-================================
-- NO real framework code
-- NO syntax-heavy snippets
-- NO long text blocks
-- Use schematic blocks, arrows, and labels only
-
-If code is shown:
-- Maximum 3–4 lines
-- PSEUDOCODE ONLY
-- Generic (no exact React / JS / API syntax)
-
-Examples:
-❌ useEffect(() => fetchData())
-✅ fetch → update state → render
-
-================================
-MANDATORY IMAGE ELEMENTS
-================================
-
-1️⃣ TITLE (Top, Large, Bold)
-- States the learning outcome
-Examples:
-- "Why Recomputing State Breaks at Scale"
-- "React 19: Async Belongs to the Framework"
-- "Lab Metrics Lie. Users Don’t."
-
-2️⃣ MAIN VISUAL (Center)
-- Comparison panels OR flow diagram
-- Clear directional arrows
-- Clean spacing
-
-3️⃣ CAUSAL LABELS (2–4 max)
-Explain WHY something fails or works:
-- "Repeated Reads"
-- "Manual Cleanup"
-- "Lifecycle Coupling"
-- "Framework-Owned Async"
-- "Pre-Aggregated State"
-
-Labels must explain CAUSE, not describe objects.
-
-4️⃣ CONCLUSION STRIP (Bottom, 1 line)
-Summarize the insight:
-- "Maintain state. Don’t recompute it."
-- "Declarative async > effect-driven async."
-- "Measure reality, not simulations."
-
-================================
-STYLE & AESTHETIC (NON-NEGOTIABLE)
-================================
-- Clean, minimal, professional
-- High contrast
-- Limited palette (2–3 colors)
-- Clear hierarchy
-- No clutter
-- No memes
-- No mascots
-- No humor unless it directly reinforces the lesson
-
-This is a TEACHING DIAGRAM, not an illustration.
-
-================================
-BRANDING
-================================
-Small, subtle footer:
-"LinkedInVibe | Engineering"
-
-================================
-OUTPUT FORMAT
-================================
-Return ONE precise image-generation prompt.
-Do NOT explain.
-Do NOT add commentary.
+OUTPUT FORMAT:
+A single detailed image prompt describing the schematic clearly and precisely.
 `;
 
     const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: imagePromptTemplate }] }]
-        })
+        body: JSON.stringify({ contents: [{ parts: [{ text: imagePromptTemplate }] }] })
     });
-
     const data = await response.json();
-
-    return (
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Clean teaching diagram explaining one software engineering insight with clear comparison, labels, and takeaway."
-    );
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Anime sketch style tech illustration";
 }
 
 async function generateImageWithGemini(apiKey, imagePrompt) {
@@ -816,4 +819,70 @@ function convertMarkdownToUnicode(text) {
     text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '$1');
 
     return text;
+}
+
+// --- AI Helper Functions ---
+
+// --- AI Helper Functions ---
+
+async function analyzeFormWithGemini(apiKey, profile, formContext, modelName = "gemini-2.5-flash-lite", jobDescription = "") {
+    // Default to a valid model if none provided
+    if (!modelName) modelName = "gemini-2.5-flash-lite";
+
+    // Map UI values to API model names if needed, or assume UI sends correct API values
+    // UI sends: gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro
+    // We construct URL dynamically
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+    // Construct System Prompt
+    const systemPrompt = `
+    You are an intelligent form-filling assistant. 
+    Your task is to map a user's CANDIDATE PROFILE to a list of FORM FIELDS from a job application.
+
+    CANDIDATE PROFILE:
+    ${JSON.stringify(profile, null, 2)}
+
+    JOB DESCRIPTION CONTEXT:
+    ${jobDescription ? jobDescription.substring(0, 1000) : "N/A"}
+
+    FORM FIELDS TO FILL (JSON):
+    ${JSON.stringify(formContext, null, 2)}
+    
+    INSTRUCTIONS:
+    1. For each item in "FORM FIELDS", determine the best value from "CANDIDATE PROFILE".
+    2. Use smart inference:
+       - If form asks "Years of Experience" (id: v_123) and profile has "5", map "v_123": "5".
+       - If form asks "Why do you want this job?" and profile has generic "Additional Info", adapt it if possible or just use it.
+       - If form asks "Gender" (Select) and profile says "Male", return "Male" (the exact text to select).
+       - If form asks for something NOT in profile (e.g., "Are you a veteran?"), infer "No" if not stated, or leave blank/null if unsafe to guess.
+       - If field is hidden or irrelevant, ignore it.
+    
+    OUTPUT FORMAT:
+    Return ONLY a JSON object mapping Field IDs to Values.
+    Example: { "vibe_0_123": "John Doe", "vibe_1_456": "5" }
+    Do NOT include markdown formatting. Return RAW JSON.
+    `;
+
+    try {
+        // Use Gemini Flash Lite for speed/cost
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: systemPrompt }] }]
+            })
+        });
+
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!text) throw new Error("Empty AI response");
+
+        // Clean JSON (remove \`\`\`json wrappers if any)
+        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanJson);
+    } catch (e) {
+        console.error("AI Analysis Failed:", e);
+        throw new Error("AI processing failed.");
+    }
 }

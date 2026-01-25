@@ -14,4 +14,8 @@ router.post('/schedule', verifyAuth, createSchedule);
 router.delete('/schedule/:id', verifyAuth, deleteSchedule);
 router.post('/schedule/:id/complete', verifyAuth, markComplete);
 
+// Local AI (Z-Image)
+const { generateLocalImage } = require('../controllers/localAiController');
+router.post('/generate-image-local', verifyAuth, generateLocalImage);
+
 module.exports = router;

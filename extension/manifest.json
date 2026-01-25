@@ -1,19 +1,23 @@
 {
     "manifest_version": 3,
     "name": "LinkedInVibe",
-    "version": "1.0",
-    "description": "Scrapes the top 10 posts from your LinkedIn feed.",
+    "version": "1.2",
+    "description": "Your All-in-One LinkedIn AI Assistant: Viral Post Generator, Auto-Applier, and Job Search Helper.",
     "permissions": [
         "activeTab",
         "scripting",
         "storage",
         "downloads",
-        "alarms"
+        "alarms",
+        "contextMenus",
+        "notifications"
     ],
     "host_permissions": [
         "https://generativelanguage.googleapis.com/*",
         "http://localhost:3000/*",
-        "https://linkedinvibe.onrender.com/*"
+        "https://linkedinvibe.onrender.com/*",
+        "https://nplvpyrjtkqjopslwvqa.supabase.co/*",
+        "<all_urls>"
     ],
     "background": {
         "service_worker": "background.js"
@@ -22,6 +26,10 @@
         "16": "icon.png",
         "48": "icon.png",
         "128": "icon.png"
+    },
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
     },
     "action": {
         "default_popup": "popup.html",
@@ -37,7 +45,8 @@
                 "*://www.linkedin.com/*"
             ],
             "js": [
-                "content.js"
+                "content.js",
+                "job_bot.js"
             ]
         },
         {

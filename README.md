@@ -32,8 +32,14 @@ We are building the ultimate **LinkedIn AI Agent**. Check out [ROADMAP.md](ROADM
 
 ### Option A: Install Extension (Easy)
 1.  Clone this repo.
-2.  Go to `chrome://extensions` -> Load Unpacked -> Select `/extension` folder.
-3.  Open the extension popup and enter your **Gemini API Key**.
+2.  **Configuration**:
+    *   Navigate to `extension/`.
+    *   Copy `config.example.js` to `config.js` (`cp config.example.js config.js`).
+    *   Edit `config.js` and add your Supabase keys (or ask maintainer for dev keys).
+3.  Go to `chrome://extensions` -> Load Unpacked -> Select `/extension` folder.
+4.  Open the extension popup and enter your **Gemini API Key**.
+
+> **Note**: The downloadable `.zip` release comes pre-configured and ready to use!
 
 ### Option B: Self-Host the Full Stack
 If you want the Dashboard and Scheduler features on your own server:

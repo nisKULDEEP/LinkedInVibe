@@ -1,143 +1,234 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LinkedIn Scraper</title>
+  <title>LinkedInVibe</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="ai_styles.css">
 </head>
+
 <body>
   <div class="container">
-    <div class="info-icon" id="infoIcon">ℹ️</div>
+    <!-- Header -->
+    <div class="app-header">
+      <img src="icon.png" class="logo" alt="Logo" width="36" height="36">
+      <div class="header-text">
+        <h1>LinkedInVibe</h1>
+        <p class="subtitle">Viral Posts • Auto Apply • AI Job Assist</p>
+      </div>
+      <div class="info-icon" id="infoIcon">ℹ️</div>
+    </div>
     <div id="disclaimerTooltip" class="disclaimer-tooltip">
-        <strong>Privacy & Compliance</strong><br>
-        • We scrape your top 10 posts related to you.<br>
-        • All data is saved in <strong>Chrome Local Storage</strong>.<br>
-        • Your API Key is stored locally on your device.<br>
-        • No data is sent to external servers.
+      <strong>Privacy &amp; Compliance</strong><br>
+      • We scrape your top 10 posts related to you.<br>
+      • All data is saved in <strong>Chrome Local Storage</strong>.<br>
+      • Your API Key is stored locally on your device.<br>
+      • No data is sent to external servers.
     </div>
 
-    <img src="icon.png" class="logo" alt="Logo" width="60" height="60" style="margin-bottom: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-    <h1>LinkedInVibe</h1>
-    <p class="subtitle">Create viral LinkedIn content instantly.</p>
-    
+    <!-- Onboarding Section -->
     <div id="onboarding" class="section" style="display:none;">
       <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
         To use LinkedInVibe, complete these steps:
       </p>
 
       <div class="input-group">
-          <label>1. LinkedIn Username</label>
-          <input type="text" id="usernameInput" placeholder="e.g. johndoe" />
+        <label>1. LinkedIn Username</label>
+        <input type="text" id="usernameInput" placeholder="e.g. johndoe" />
       </div>
 
       <div class="input-group">
-          <label>2. Google Gemini Key (Free)</label>
-          <input type="password" id="apiKeyInput" placeholder="Paste API Key here" />
-          <div class="helper-link">
-            <a href="https://aistudio.google.com/app/apikey" target="_blank">Get Key ↗</a>
-          </div>
+        <label>2. Google Gemini Key (Free)</label>
+        <input type="password" id="apiKeyInput" placeholder="Paste API Key here" />
+        <div class="helper-link">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank">Get Key ↗</a>
+        </div>
       </div>
 
-      <div class="input-group" id="dashboardSection" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
-          <label style="color: #0369a1; font-weight: 600;">3. Connect Dashboard</label>
-          
-          <!-- Status Indicator -->
-          <div id="tokenStatus" style="margin: 8px 0; padding: 8px; border-radius: 6px; font-size: 11px; display: none;">
-            <!-- Will be populated by JS -->
-          </div>
-          
-          <p id="dashboardInstructions" style="font-size: 11px; color: #0284c7; margin: 8px 0; line-height: 1.4;">
-            Open the Dashboard below, login, then click<br/>
-            <strong>"Send to Extension"</strong> button.
-          </p>
-          <a href="https://niskuldeep.github.io/LinkedInVibe/#/dashboard" target="_blank" 
-             style="display: inline-block; background: #0ea5e9; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 500;">
-            Open Dashboard →
-          </a>
+      <div class="input-group" id="dashboardSection"
+        style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
+        <label style="color: #0369a1; font-weight: 600;">3. Connect Dashboard</label>
+        <div id="tokenStatus" style="margin: 8px 0; padding: 8px; border-radius: 6px; font-size: 11px; display: none;">
+        </div>
+        <p id="dashboardInstructions" style="font-size: 11px; color: #0284c7; margin: 8px 0; line-height: 1.4;">
+          Open the Dashboard below, login, then click<br />
+          <strong>"Send to Extension"</strong> button.
+        </p>
+        <a href="https://niskuldeep.github.io/LinkedInVibe/#/dashboard" target="_blank"
+          style="display: inline-block; background: #0ea5e9; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 500;">
+          Open Dashboard →
+        </a>
       </div>
 
-      <button id="saveUserBtn" class="primary-btn" style="width: 100%; margin-top: 10px;" disabled>Connect & Start 🚀</button>
-      <p id="connectError" style="font-size: 11px; color: #dc2626; margin-top: 6px; text-align: center; display: none;"></p>
+      <button id="saveUserBtn" class="primary-btn" style="width: 100%; margin-top: 10px;" disabled>Connect & Start
+        🚀</button>
+      <p id="connectError" style="font-size: 11px; color: #dc2626; margin-top: 6px; text-align: center; display: none;">
+      </p>
     </div>
 
+    <!-- Main Menu -->
     <div id="mainMenu" class="section" style="display:none;">
-        <div class="user-display">
-           Hi, <span id="menuUserDisplay">User</span> 👋
-        </div>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h2 style="margin: 0; font-size: 16px;">Hello, <span id="menuUserDisplay" class="highlight">User</span>!</h2>
+        <p style="margin: 2px 0 0 0; color: #666; font-size: 11px;">What would you like to do?</p>
+      </div>
 
-        <div class="menu-card" id="btnInstantPost">
-            <div class="card-icon">⚡️</div>
-            <div class="card-text">
-                <h3>Instant Viral Post</h3>
-                <p>Generate magic content now</p>
-            </div>
-            <div class="card-arrow">→</div>
-        </div>
+      <div class="menu-grid">
+        <button id="btnJobHelper" class="menu-card">
+          <div class="icon">💼</div>
+          <div class="label">Auto fill Application</div>
+        </button>
 
-        <div class="menu-card" id="btnSmartScheduler">
-            <div class="card-icon">📅</div>
-            <div class="card-text">
-                <h3>Smart Scheduler</h3>
-                <p>Plan ahead & Auto-post</p>
-            </div>
-        </div>
+        <button id="btnInstantPost" class="menu-card">
+          <div class="icon">⚡️</div>
+          <div class="label">Viral Post</div>
+        </button>
+
+        <button id="btnSmartScheduler" class="menu-card">
+          <div class="icon">📅</div>
+          <div class="label">Scheduler</div>
+        </button>
+
+        <button id="btnBotApplier" class="menu-card">
+          <div class="icon">🤖</div>
+          <div class="label">Bot Applier</div>
+        </button>
+      </div>
     </div>
 
-    <div id="actionArea" class="section" style="display:none;">
-      <button id="backToMenu" class="back-link">← Back to Menu</button>
-      
-      <div class="user-display" style="display:none;"> <!-- Hidden duplicate, used for logic but not UI -->
-          User: <span id="displayUser"></span> 
-      </div>
-      
-      <div class="action-header">
-          <h2>Create New Post</h2>
+    <!-- Job Helper Menu -->
+    <div id="jobHelperMenu" class="section" style="display:none;">
+      <div class="header-row">
+        <button id="backFromJobMenu" class="icon-btn">‹</button>
+        <h2 style="font-size: 15px; margin:0;">Job Assistant</h2>
       </div>
 
-      <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #444; background: #f3f4f6; padding: 8px; border-radius: 6px;">
-          <input type="checkbox" id="scrapePostsCheckbox" checked style="accent-color: #0a66c2; width: 14px; height: 14px;">
-          <label for="scrapePostsCheckbox" style="cursor: pointer;">Scrape Recent Posts (Last 10)</label>
+      <div style="margin: 10px 0;">
+        <label for="aiModelSelect"
+          style="font-size: 11px; font-weight: 600; color: #4b5563; display: block; margin-bottom: 4px;">Select AI
+          Model:</label>
+        <select id="aiModelSelect"
+          style="width: 100%; padding: 6px; font-size: 12px; border-radius: 6px; border: 1px solid #d1d5db; background: #fff;">
+          <option value="gemini-2.0-flash-exp">⚡️ Gemini 2.0 Flash (Fastest/Free)</option>
+          <option value="gemini-1.5-flash">🚀 Gemini 1.5 Flash (Stable)</option>
+          <option value="gemini-1.5-pro">🧠 Gemini 1.5 Pro (Smarter/High Cost)</option>
+        </select>
+        <p style="font-size: 10px; color: #9ca3af; margin: 4px 0 0 0;">* Check Gemini pricing for API usage.</p>
+      </div>
+
+      <button id="btnFillForm" class="primary-btn compact-btn">⚡️ Local Fill (Instant)</button>
+      <button id="btnAiFill" class="secondary-btn compact-btn"
+        style="margin-top: 8px; border: 1px solid #7c3aed; color: #7c3aed; background: #f5f3ff;">
+        🧠 AI Smart Fill
+      </button>
+
+      <button id="btnEditProfile" class="secondary-btn compact-btn" style="margin-top: 8px;">⚙️ Edit Profile</button>
+
+      <div id="agentStatus" style="display:none; margin-top: 10px; text-align: center;">
+        <div class="ai-loader small">
+          <div class="orb"></div>
+          <div class="orb"></div>
+          <div class="orb"></div>
+        </div>
+        <p id="agentStep" style="font-size: 12px; font-weight: 600; color: #4b5563; margin-top: 5px;"></p>
+        <p id="agentDetail" style="font-size: 10px; color: #9ca3af; margin: 0;"></p>
+      </div>
+    </div>
+
+    <!-- Bot Dashboard Menu -->
+    <div id="botDashboardMenu" class="section" style="display:none;">
+      <div class="header-row">
+        <button id="backFromBotMenu" class="icon-btn">‹</button>
+        <h2 style="font-size: 16px; margin:0; font-weight:700;">Auto Apply Bot</h2>
+      </div>
+
+      <div style="text-align: center; padding: 10px 0;">
+        <div style="font-size: 48px; margin-bottom: 12px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🤖</div>
+
+        <div id="botStatusIndicator" class="status-indicator">
+          <div class="dot"></div>
+          <span id="botStatusText">Ready to Start</span>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 12px; margin-top: 20px;">
+          <button id="btnStartBot" class="primary-btn"
+            style="width: auto; padding: 10px 24px; background: linear-gradient(135deg, #059669 0%, #047857 100%); margin:0;">
+            ▶ Start Bot
+          </button>
+          <button id="btnStopBot" class="secondary-btn"
+            style="width: auto; padding: 10px 24px; border-color: #dc2626; color: #dc2626; display:none; margin:0;">
+            ⏹ Stop
+          </button>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="stats-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 12px; color: #6b7280; font-weight: 500;">Applications Sent</span>
+            <strong id="statAppliedCount" style="font-size: 18px; color: #111827;">0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12px; color: #6b7280; font-weight: 500;">Current Action</span>
+            <span id="statAction" style="font-size: 12px; color: #2563eb; font-weight: 500;">Idle</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="btnBotSettings" class="secondary-btn compact-btn" style="margin-top: 15px; font-size:12px;">⚙️
+        Configure Blacklist</button>
+    </div>
+
+    <!-- Action Area (Viral Post) -->
+    <div id="actionArea" class="section" style="display:none;">
+      <button id="backToMenu" class="back-link">‹ Back to Menu</button>
+
+      <div class="user-display" style="display:none;">
+        User: <span id="displayUser"></span>
+      </div>
+
+      <div class="action-header">
+        <h2>Create New Post</h2>
       </div>
 
       <button id="autoScrapeBtn" class="primary-btn">✨ Generate Magic Post</button>
-      
-      <div style="margin-top: 15px; width: 100%; text-align: left;">
-          <label style="font-size: 12px; font-weight: 500; color: #555;">AI Model:</label>
-          <select id="modelSelector" style="padding: 5px; border-radius: 6px; border: 1px solid #ccc; width: 100%; margin-bottom: 5px; font-size: 12px;">
-              <option value="gemini-3-flash-preview">Gemini 3 Flash (Balanced) - ⚡️⚡️</option>
-              <option value="gemini-3-pro-preview">Gemini 3 Pro (Best Quality) - 🧠🧠🧠</option>
-              <option value="gemini-2.5-flash-lite-preview-09-2025">Gemini 2.5 Flash Lite (Fastest) - ⚡️⚡️⚡️</option>
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Free Tier) - 🆓 (Text Only)</option>
-          </select>
-          <div id="costDisplay" style="font-size: 10px; color: #666; margin-bottom: 10px; padding: 4px 8px; background: #f0f9ff; border-radius: 4px; border-left: 3px solid #0ea5e9;">
-              Cost: $0.50 / 1M tokens (Recommended)
-          </div>
 
-          <label style="font-size: 12px; font-weight: 500; color: #555;">Custom Topic (Optional)</label>
-          <textarea id="customTopic" rows="2" placeholder="e.g. 'React 19 features' or 'My journey as a startup founder'"></textarea>
-          
-          <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
-             <label style="font-size: 12px; font-weight: 500; color: #555;">Schedule:</label>
-             <select id="scheduleDelay" style="padding: 5px; border-radius: 6px; border: 1px solid #ccc; width: 60%;">
-                 <option value="0">🚀 Post Now</option>
-                 <option value="1">⏱️ In 1 Minute (Test)</option>
-                 <option value="30">⏱️ In 30 Minutes</option>
-                 <option value="60">⏱️ In 1 Hour</option>
-                 <option value="180">⏱️ In 3 Hours</option>
-                 <option value="custom">📅 Custom Time</option>
-             </select>
-          </div>
-          <input type="time" id="customTimeInput" style="display:none; width: 100%;">
+      <div style="margin-top: 15px; width: 100%; text-align: left;">
+        <label style="font-size: 12px; font-weight: 500; color: #555;">Custom Topic (Optional)</label>
+        <textarea id="customTopic" rows="2"
+          placeholder="e.g. 'React 19 features' or 'My journey as a startup founder'"></textarea>
+
+        <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <label style="font-size: 12px; font-weight: 500; color: #555;">Schedule:</label>
+          <select id="scheduleDelay" style="padding: 5px; border-radius: 6px; border: 1px solid #ccc; width: 60%;">
+            <option value="0">🚀 Post Now</option>
+            <option value="1">⏱️ In 1 Minute (Test)</option>
+            <option value="30">⏱️ In 30 Minutes</option>
+            <option value="60">⏱️ In 1 Hour</option>
+            <option value="180">⏱️ In 3 Hours</option>
+            <option value="custom">📅 Custom Time</option>
+          </select>
+        </div>
+        <input type="time" id="customTimeInput" style="display:none; width: 100%;">
       </div>
     </div>
 
+    <!-- Status Bar -->
     <div id="status" class="status">Ready to create magic...</div>
-    
-    <div id="menuFooter" style="margin-top: 10px; font-size: 11px; color: #888; display:none;">
-        <a href="#" id="changeUser">Settings</a> | <a href="#" id="resetKey">Reset</a>
+
+    <!-- Footer (Inside Container) -->
+    <div id="menuFooter" class="footer-links" style="display:none;">
+      <a href="#" id="changeUser">⚙️ Settings</a>
+      <span class="divider">|</span>
+      <a href="#" id="resetKey">🔄 Reset</a>
     </div>
+
   </div>
+  <!-- End Container -->
+
   <script src="popup.js"></script>
 </body>
+
 </html>

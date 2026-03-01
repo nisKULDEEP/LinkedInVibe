@@ -17,25 +17,32 @@ let applicationCount = 0;
 // --- UI Helper Functions ---
 function initGenericUI() {
     let overlay = document.getElementById('linkedin-bot-status-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'linkedin-bot-status-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.bottom = '20px';
-        overlay.style.right = '20px';
-        overlay.style.width = '300px';
-        overlay.style.backgroundColor = '#fff';
-        overlay.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-        overlay.style.borderRadius = '8px';
-        overlay.style.zIndex = '9999';
-        overlay.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-        overlay.style.border = '1px solid #e0e0e0';
-        overlay.style.overflow = 'hidden';
+    if (overlay) {
+        overlay.remove(); // Force remove to ensure new UI is applied
+    }
 
-        overlay.innerHTML = `
-            <div style="background: #0a66c2; color: white; padding: 10px 15px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
-                <span>🤖 LinkedIn Bot</span>
-                <span id="bot-status-badge" style="background: rgba(255,255,255,0.2); font-size: 11px; padding: 2px 6px; border-radius: 4px;">IDLE</span>
+    // Create fresh overlay
+    overlay = document.createElement('div');
+    overlay.id = 'linkedin-bot-status-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.bottom = '20px';
+    overlay.style.left = '20px'; // Move to left
+    overlay.style.width = '300px';
+    overlay.style.backgroundColor = '#fff';
+    overlay.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    overlay.style.borderRadius = '8px';
+    overlay.style.zIndex = '9999';
+    overlay.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+    overlay.style.border = '1px solid #e0e0e0';
+    overlay.style.overflow = 'hidden';
+
+    overlay.innerHTML = `
+            <div id="bot-overlay-header" style="background: #0a66c2; color: white; padding: 10px 15px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; cursor: grab;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>🤖 LinkedIn Bot</span>
+                    <span id="bot-status-badge" style="background: rgba(255,255,255,0.2); font-size: 11px; padding: 2px 6px; border-radius: 4px;">IDLE</span>
+                </div>
+                <span id="bot-overlay-close" style="cursor: pointer; font-size: 14px; opacity: 0.8;">✖</span>
             </div>
             <div style="padding: 15px;">
                 <div id="bot-status-text" style="font-size: 14px; margin-bottom: 8px; color: #333;">Waiting to start...</div>
@@ -45,9 +52,52 @@ function initGenericUI() {
                 </div>
             </div>
         `;
-        document.body.appendChild(overlay);
-    }
+    document.body.appendChild(overlay);
+
+    // --- Event Listeners ---
+    // Close Button
+    document.getElementById('bot-overlay-close').addEventListener('click', () => {
+        overlay.remove();
+    });
+
+    // Draggable Logic
+    const header = document.getElementById('bot-overlay-header');
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    header.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        header.style.cursor = 'grabbing';
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const rect = overlay.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+
+        // Remove bottom positioning to rely on top/left
+        overlay.style.bottom = 'auto';
+        overlay.style.right = 'auto';
+        overlay.style.left = `${initialLeft}px`;
+        overlay.style.top = `${initialTop}px`;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        overlay.style.left = `${initialLeft + dx}px`;
+        overlay.style.top = `${initialTop + dy}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            header.style.cursor = 'grab';
+        }
+    });
 }
+
 
 function updateOverlay(statusText, state = null) {
     const textEl = document.getElementById('bot-status-text');
@@ -135,10 +185,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function startWorkflow() {
     // Refresh config to ensure we have latest settings (e.g. Auto-Apply toggle)
     try {
-        const res = await chrome.storage.local.get(['candidateProfile']);
+        const res = await chrome.storage.local.get(['candidateProfile', 'botSettings']);
         if (res.candidateProfile) {
-            config = res.candidateProfile;
-            console.log("🤖 Bot Config Refreshed on Start:", config.autoApply ? "Auto-Apply ON" : "Auto-Apply OFF");
+            config = { ...res.candidateProfile, ...(res.botSettings || {}) };
+            console.log("🤖 Bot Config Refreshed on Start:", JSON.stringify({
+                autoApply: config.autoApply,
+                applyMode: config.applyMode,
+                targetCountries: config.targetCountries,
+                targetCities: config.targetCities,
+                workplaceRemote: config.workplaceRemote
+            }));
         }
     } catch (e) { console.error("Config refresh failed", e); }
 
@@ -151,13 +207,32 @@ async function startWorkflow() {
     const hasKeywords = window.location.href.includes('keywords=');
     const hasEasyApplyFilter = window.location.href.includes('f_AL=true');
 
-    // Determine target location (City + Country, or Country, or Default)
-    let searchLocation = config.location;
-    if (!searchLocation) {
-        if (config.city && config.country) searchLocation = `${config.city}, ${config.country}`;
-        else if (config.country) searchLocation = config.country;
-        else searchLocation = "United States";
+    // Pick the first location for the search, or fallback to profile location, then default
+    let searchLocation = "";
+    let countries = (config.targetCountries || "").split(',').map(s => s.trim()).filter(Boolean);
+    let cities = (config.targetCities || "").split(',').map(s => s.trim()).filter(Boolean);
+
+    if (cities.length > 0 && countries.length > 0) {
+        searchLocation = `${cities[0]}, ${countries[0]}`;
+    } else if (countries.length > 0) {
+        searchLocation = countries[0];
+    } else if (cities.length > 0) {
+        searchLocation = cities[0];
+    } else if (config.city && config.country) {
+        searchLocation = `${config.city}, ${config.country}`;
+    } else if (config.country) {
+        searchLocation = config.country;
+    } else {
+        searchLocation = "United States";
     }
+
+    // Build Workplace type filter string (&f_WT=)
+    let wtParams = [];
+    if (config.workplaceOnsite) wtParams.push("1");
+    if (config.workplaceRemote) wtParams.push("2");
+    if (config.workplaceHybrid) wtParams.push("3");
+
+    let wtString = wtParams.length > 0 ? `&f_WT=${wtParams.join('%2C')}` : "";
 
     // Determine keywords (Join all preferred roles with OR)
     let roles = config.preferredRoles && config.preferredRoles.length > 0 ? config.preferredRoles : ["Software Engineer"];
@@ -168,13 +243,14 @@ async function startWorkflow() {
         .join(' OR ');
 
     // Force navigation if not on search page OR if we have keywords but URL doesn't (empty search filter) OR if Easy Apply filter is missing
-    if (!isJobSearch || (keywords && !hasKeywords) || !hasEasyApplyFilter) {
+    const hasWtFilter = wtParams.length > 0 ? window.location.href.includes('f_WT=') : true; // Only enforce if selected
+    if (!isJobSearch || (keywords && !hasKeywords) || !hasEasyApplyFilter || (wtParams.length > 0 && !hasWtFilter)) {
         currentState = JOB_BOT_STATE.NAVIGATING;
         const msg = `Navigating to Jobs Page...`;
         console.log(`📍 ${msg}`);
         updateOverlay(msg, "Navigating");
 
-        const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(searchLocation)}&f_AL=true`;
+        const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(searchLocation)}&f_AL=true${wtString}`;
         window.location.href = url;
         return; // Will reload on new page
     }
@@ -316,9 +392,9 @@ async function processJobList() {
 
         updateOverlay(`Inspecting: ${listCompany}`, "Processing");
 
-        // Load Blacklist from config
-        const companyBlacklist = config.companyBlacklist ? config.companyBlacklist.split(',').map(s => s.trim().toLowerCase()) : [];
-        const titleBlacklist = config.titleBlacklist ? config.titleBlacklist.split(',').map(s => s.trim().toLowerCase()) : [];
+        // Load Blacklist from config (can be array or comma-separated string)
+        const companyBlacklist = Array.isArray(config.companyBlacklist) ? config.companyBlacklist.map(s => s.toLowerCase()) : (config.companyBlacklist || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        const titleBlacklist = Array.isArray(config.titleBlacklist) ? config.titleBlacklist.map(s => s.toLowerCase()) : (config.titleBlacklist || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
         // Check Company
         if (companyBlacklist.length > 0 && companyBlacklist.some(b => listCompany.toLowerCase().includes(b))) {
@@ -337,8 +413,76 @@ async function processJobList() {
         console.log(`   ⏳ Waiting for job details to load...`);
         await wait(2000); // Wait for details to load
 
+        // --- STRATEGY & AI CHECK ---
+        const strategy = (await chrome.storage.local.get(['appStrategy'])).appStrategy || 'standard';
+
+        // 1. Extract Job Description (Needed for Tailoring and Matching)
+        let jobDescription = "";
+        const descEl = document.querySelector('.jobs-description') || document.querySelector('.jobs-description-content__text') || document.querySelector('#job-details');
+        if (descEl) {
+            jobDescription = descEl.innerText.substring(0, 3000); // Access first 3k chars
+        } else {
+            console.log("   ⚠️ Could not extract JD. Proceeding with limited context.");
+        }
+
+        // 2. Strategy Enforcement
+        if (strategy === 'threshold') {
+            updateOverlay("Checking Match Score...", "Analyzing");
+            const minScore = (await chrome.storage.local.get(['minMatchScore'])).minMatchScore || 70;
+
+            // Reuse existing match check or call new specific one
+            const matchResult = await checkJobMatchWithScore(jobDescription);
+            if (matchResult.score < minScore) {
+                console.log(`   ⛔ Match Score ${matchResult.score}% < ${minScore}%. Skipping.`);
+                updateOverlay(`Skipped: Low Match (${matchResult.score}%)`, "Skipping");
+                continue;
+            }
+            console.log(`   ✅ Match Score ${matchResult.score}% >= ${minScore}%. Proceeding.`);
+        }
+        else if (strategy === 'tailor') {
+            updateOverlay("🤖 AI Tailoring Resume + Creating Doc...", "Tailoring");
+            console.log("   🧠 Strategy: Tailoring Resume & Creating Google Doc...");
+
+            // Call enhanced tailoring agent (creates Google Doc)
+            const tailorResult = await new Promise(resolve => {
+                chrome.runtime.sendMessage({
+                    action: "create_tailored_resume",
+                    jobDescription: jobDescription,
+                    jobTitle: listTitle,
+                    company: listCompany
+                }, response => {
+                    if (response && response.success) resolve(response);
+                    else {
+                        console.error("Tailoring failed:", response?.error);
+                        resolve(null);
+                    }
+                });
+            });
+
+            if (tailorResult) {
+                console.log("   ✨ Resume Tailored!");
+                config = tailorResult.tailoredProfile; // TEMPORARY OVERRIDE for this loop iteration
+                // Store base64 and filename for auto-upload
+                config._resumeBase64 = tailorResult.resumeBase64 || null;
+                config._resumeFilename = tailorResult.resumeFilename || null;
+            }
+        }
+        else {
+            // Standard: No extra checks
+            console.log("   ⏩ Strategy: Standard (Apply All)");
+        }
+
+        // MATCH CHECK (Legacy - usually always true if no threshold set, but keep for safety)
+        // const isMatch = await checkJobMatch(); 
+        // if (!isMatch) continue; 
+
         // Check for Easy Apply button
         console.log(`   🔍 Looking for Easy Apply button...`);
+
+        // --- APPLY MODE GATE ---
+        const applyMode = config.applyMode || 'easy_apply';
+        const shouldDoEasyApply = applyMode === 'easy_apply' || applyMode === 'all_jobs';
+        const shouldDoExternal = applyMode === 'all_jobs' || applyMode === 'external_only';
 
         // Robust selector strategy
         const applySelectors = [
@@ -366,7 +510,7 @@ async function processJobList() {
             if (!easyApplyBtn) await wait(500);
         }
 
-        if (easyApplyBtn) {
+        if (easyApplyBtn && shouldDoEasyApply) {
             const btnText = easyApplyBtn.innerText || easyApplyBtn.textContent || '';
             const ariaLabel = easyApplyBtn.getAttribute('aria-label') || '';
             console.log(`   🔘 Found button with text: "${btnText}"`);
@@ -416,6 +560,23 @@ async function processJobList() {
                     updateOverlay(`Applied! Total: ${applicationCount}`, "Success");
                     // Update stats (visual feedback helper)
                     chrome.runtime.sendMessage({ action: "update_bot_stats", count: applicationCount });
+
+                    // 📊 Log to Google Sheets
+                    chrome.runtime.sendMessage({
+                        action: "log_application",
+                        rowData: {
+                            jobTitle: listTitle,
+                            company: listCompany,
+                            jobUrl: window.location.href,
+                            matchScore: config._lastMatchScore || 'N/A',
+                            strategy: strategy,
+                            resumeLink: config._resumeDocUrl || '',
+                            status: 'Applied',
+                            notes: 'Easy Apply'
+                        }
+                    }, (res) => {
+                        if (res && res.success) console.log('   📊 Logged to spreadsheet');
+                    });
                 } else {
                     console.log(`   ⚠️  Application failed or incomplete`);
                     updateOverlay("Application incomplete/failed", "Failed");
@@ -425,8 +586,80 @@ async function processJobList() {
                 updateOverlay("Skipped (External Apply)", "Skipping");
             }
         } else {
-            console.log(`   ❌ No Easy Apply button found`);
-            updateOverlay("Skipped (No Apply Button)", "Skipping");
+            console.log(`   ❌ No Easy Apply button found. Checking for external apply...`);
+
+            if (!shouldDoExternal) {
+                console.log(`   ⏭️  Apply mode is "${applyMode}" — skipping external links.`);
+                updateOverlay("Skipped (Easy Apply only mode)", "Skipping");
+                continue;
+            }
+
+            // Look for external apply link
+            const externalApplySelectors = [
+                'a.jobs-apply-button',
+                'a[data-live-test-job-apply-button]',
+                'a[aria-label*="Apply"]',
+                '.jobs-apply-button a',
+                '.jobs-unified-top-card__content--two-pane a[href*="apply"]'
+            ];
+
+            let externalLink = null;
+            for (const sel of externalApplySelectors) {
+                const el = document.querySelector(sel);
+                if (el && el.href && !el.href.includes('linkedin.com')) {
+                    externalLink = el.href;
+                    break;
+                }
+            }
+
+            // Also check for "Apply" button that links externally
+            if (!externalLink) {
+                const allLinks = document.querySelectorAll('a[href]');
+                for (const link of allLinks) {
+                    const text = (link.innerText || link.textContent || '').toLowerCase();
+                    if (text.includes('apply') && link.href && !link.href.includes('linkedin.com')) {
+                        externalLink = link.href;
+                        break;
+                    }
+                }
+            }
+
+            if (externalLink) {
+                console.log(`   🌐 External apply link found: ${externalLink}`);
+                updateOverlay(`Opening external: ${listCompany}...`, "External Apply");
+
+                // Send to background to open in new tab + inject universal autofill
+                chrome.runtime.sendMessage({
+                    action: "open_external_job",
+                    url: externalLink,
+                    jobTitle: listTitle,
+                    company: listCompany,
+                    jobDescription: jobDescription
+                }, (res) => {
+                    if (res && res.success) {
+                        console.log(`   🌐 External tab opened (ID: ${res.tabId})`);
+                    }
+                });
+
+                // Log to spreadsheet as "External - Pending"
+                chrome.runtime.sendMessage({
+                    action: "log_application",
+                    rowData: {
+                        jobTitle: listTitle,
+                        company: listCompany,
+                        jobUrl: externalLink,
+                        matchScore: config._lastMatchScore || 'N/A',
+                        strategy: strategy,
+                        resumeLink: config._resumeDocUrl || '',
+                        status: 'External - Pending',
+                        notes: 'Opened external page for auto-fill'
+                    }
+                });
+
+                processedJobs.add(jobId);
+            } else {
+                updateOverlay("Skipped (No Apply Button)", "Skipping");
+            }
         }
 
         console.log(`   ⏸️  Cooling down before next job...`);
@@ -517,22 +750,58 @@ async function handleApplicationModal() {
             continue; // Retry loop
         }
 
+        // 0. Auto-select resume if this is the resume page
+        const resumeCards = modal.querySelectorAll('div[class*="jobs-document-upload-redesign-card"], label[data-test-document-list-item]');
+        if (resumeCards.length > 0) {
+            const firstRadio = resumeCards[0].querySelector('input[type="radio"]');
+            if (firstRadio && !firstRadio.checked) {
+                firstRadio.click();
+                console.log(`   📄 Auto-selected resume: ${resumeCards[0].innerText.split('\n')[0]}`);
+                await wait(500);
+            }
+        }
+
         // 1. Fill Form (Always try to fill current page first)
         console.log("   ✍️ Filling current page...");
         await fillCurrentPage(modal);
         await wait(1000); // Wait for validation/UI updates
 
         // 2. Check Buttons
-        // Check for Submit
+        // Check for Submit (LinkedIn uses various selectors for this)
         let submitBtn = modal.querySelector('button[aria-label="Submit application"]');
-        if (!submitBtn) submitBtn = Array.from(modal.querySelectorAll('button')).find(b => b.innerText.includes('Submit application'));
+        if (!submitBtn) submitBtn = modal.querySelector('button[aria-label="Submit"]');
+        if (!submitBtn) submitBtn = Array.from(modal.querySelectorAll('button')).find(b => {
+            const txt = (b.innerText || '').trim().toLowerCase();
+            return txt === 'submit application' || txt === 'submit' || txt.includes('submit application');
+        });
+        // Also check for footer buttons specifically
+        if (!submitBtn) {
+            const footerBtns = modal.querySelectorAll('footer button, .jobs-easy-apply-footer button, div[class*="footer"] button');
+            submitBtn = Array.from(footerBtns).find(b => {
+                const txt = (b.innerText || '').trim().toLowerCase();
+                return txt.includes('submit') || b.getAttribute('aria-label')?.toLowerCase().includes('submit');
+            });
+        }
+
         if (submitBtn) {
             console.log("   ✅ Found Submit button!");
+
+            // Uncheck "Follow company" checkbox if present (optional cleanup)
+            const followCheckbox = modal.querySelector('input[id*="follow-company"], label[for*="follow"] input[type="checkbox"]');
+            if (followCheckbox && followCheckbox.checked) {
+                followCheckbox.click();
+                console.log("   📌 Unchecked 'Follow company' checkbox");
+                await wait(300);
+            }
+
             if (config.autoApply) {
                 console.log("   🚀 Auto-apply enabled - submitting...");
+                submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                await wait(300);
                 submitBtn.click();
-                await wait(2000); // Wait for success screen
-                // Close success modal
+                await wait(3000); // Wait for success screen
+
+                // Close success/confirmation modal
                 const dismissBtn = document.querySelector('button[aria-label="Dismiss"]');
                 if (dismissBtn) {
                     console.log("   ✅ Application submitted! Dismissing success modal...");
@@ -721,9 +990,10 @@ async function fillCurrentPage(modal) {
             const fieldset = el.querySelector('fieldset');
             const select = el.querySelector('select');
             const checkbox = el.querySelector('input[type="checkbox"]');
+            const fileInput = el.querySelector('input[type="file"]');
             const text = el.querySelector('input[type="text"], textarea, input:not([type])'); // input:not([type]) handles some defaults
 
-            input = fieldset || select || checkbox || text;
+            input = fieldset || select || checkbox || fileInput || text;
             if (!input) continue; // No actionable input
 
             // Get Label from Container
@@ -790,48 +1060,76 @@ async function fillCurrentPage(modal) {
 
         if (filled) continue;
 
-        // --- Resume ---
-        if (input.type === 'file' && (label.includes('resume') || label.includes('cv'))) {
-            console.log("   📂 Resume upload needed (Manual for now)");
+        // --- Resume Page: Auto-select the most recent resume ---
+        if (label.includes('resume') || label.includes('cv') || label.includes('be sure to include')) {
+            // LinkedIn shows previously-uploaded resumes as radio buttons or cards
+            // Select the first one (most recent) if not already selected
+            const resumeCards = modal.querySelectorAll('label[data-test-document-list-item], div[class*="jobs-document-upload-redesign-card"]');
+            if (resumeCards.length > 0) {
+                const firstRadio = resumeCards[0].querySelector('input[type="radio"]');
+                if (firstRadio && !firstRadio.checked) {
+                    firstRadio.click();
+                    console.log(`   📄 Auto-selected most recent resume: ${resumeCards[0].innerText.split('\n')[0]}`);
+                } else {
+                    console.log(`   📄 Most recent resume already selected`);
+                }
+                filled = true;
+            } else if (input.type === 'file') {
+                console.log("   📂 Resume upload input detected (no existing resumes to select)");
+                if (config._resumeBase64 && config._resumeFilename) {
+                    console.log(`   Uploading tailored resume: ${config._resumeFilename}`);
+                    try {
+                        const byteCharacters = atob(config._resumeBase64);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) {
+                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+                        const file = new File([blob], config._resumeFilename, { type: 'application/pdf' });
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+
+                        input.files = dataTransfer.files;
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        console.log("   ✅ Resume uploaded via DataTransfer!");
+                        filled = true;
+                        await wait(1000); // Give LinkedIn UI time to process the file upload
+                    } catch (e) {
+                        console.error("   ❌ Failed to upload generated resume:", e);
+                    }
+                }
+            }
             continue;
         }
 
-        // --- AI Fallback ---
-        if (!filled && (input.type === 'text' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT')) {
+        // --- AI Fallback (for any unfilled input: text, number, textarea, select, radio) ---
+        if (!filled && (input.type === 'text' || input.type === 'number' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT' || input.tagName === 'FIELDSET')) {
             const questionData = {
                 id: input.id || Math.random().toString(36),
                 label: label,
                 type: input.type || input.tagName.toLowerCase(),
-                options: input.tagName === 'SELECT' ? Array.from(input.options).map(o => o.text) : []
+                options: input.tagName === 'SELECT' ? Array.from(input.options).map(o => o.text) :
+                    input.tagName === 'FIELDSET' ? Array.from(input.querySelectorAll('label')).map(l => l.innerText.trim()) : []
             };
             aiPendingQuestions.push({ element: input, data: questionData });
         }
     }
 
     // --- Process AI Questions ---
+    // --- Process AI Questions ---
     if (aiPendingQuestions.length > 0) {
-        console.log(`🧠 Asking AI for ${aiPendingQuestions.length} questions...`);
-        const jobDescription = document.querySelector('.jobs-description__content') ?
-            document.querySelector('.jobs-description__content').innerText.substring(0, 3000) : "N/A";
+        console.log(`🧠 AI answering ${aiPendingQuestions.length} unknown questions...`);
 
-        try {
-            const response = await chrome.runtime.sendMessage({
-                action: "bot_ask_ai",
-                profile: config,
-                questions: aiPendingQuestions.map(q => q.data),
-                jobDescription: jobDescription
-            });
+        for (const item of aiPendingQuestions) {
+            const q = item.data;
+            const answer = await askAiForAnswer(q.label, q.type, q.options);
 
-            if (response && response.answers) {
-                for (const item of aiPendingQuestions) {
-                    const answer = response.answers[item.data.id];
-                    if (answer) {
-                        await setInputValue(item.element, answer);
-                    }
-                }
+            if (answer) {
+                await setInputValue(item.element, answer);
             }
-        } catch (e) {
-            console.error("AI Request Failed", e);
         }
     }
 
@@ -1114,6 +1412,123 @@ function saveRescuedAnswers() {
 
         chrome.storage.local.set({ learnedQuestions: learned }, () => {
             console.log(`💾 Persisted ${count} learned answers for future use!`);
+        });
+    });
+}
+
+// --- AI Helpers ---
+
+function getJobDescription() {
+    // LinkedIn layout varies. Try common selectors for the description pane.
+    const container = document.querySelector('.jobs-search__job-details--container') ||
+        document.querySelector('.jobs-description') ||
+        document.querySelector('.jobs-description-content__text') ||
+        document.querySelector('#job-details');
+    return container ? container.innerText : "";
+}
+
+async function checkJobMatch() {
+    // 1. Get Config
+    const res = await new Promise(r => chrome.storage.local.get(['minMatchScore', 'appStrategy'], res => r(res)));
+
+    const strategy = res.appStrategy || 'standard';
+
+    // Only 'threshold' strategy uses the AI Filter
+    if (strategy !== 'threshold') {
+        return true;
+    }
+
+    const threshold = parseInt(res.minMatchScore || 0);
+
+    // If threshold is 0, user disabled it.
+    if (threshold === 0) return true;
+
+    // 2. Get Data
+    const jd = getJobDescription();
+    if (!jd) {
+        console.log("   ⚠️ Could not extract JD for matching. Defaulting to YES.");
+        return true;
+    }
+
+    const resumeCtx = "User profile"; // Relies on candidateProfile logic in background
+
+    updateOverlay("AI Matching...", "Analysis");
+
+    // 3. Call AI
+    return new Promise(resolve => {
+        chrome.runtime.sendMessage({
+            action: "analyze_job_match",
+            jobDescription: jd,
+            resumeContext: resumeCtx
+        }, (response) => {
+            if (response && response.success) {
+                const score = response.score || 0;
+                console.log(`   🤖 Match Score: ${score}/100 (Threshold: ${threshold})`);
+
+                if (score >= threshold) {
+                    updateOverlay(`Match: ${score}% (Pass)`, "Processing");
+                    resolve(true);
+                } else {
+                    updateOverlay(`Match: ${score}% (Too Low)`, "Skipping");
+                    console.log(`   ⛔ Score too low. Skipping.`);
+                    resolve(false);
+                }
+            } else {
+                console.log("   ⚠️ AI Match failed. Defaulting to YES.");
+                resolve(true);
+            }
+        });
+    });
+}
+
+async function askAiForAnswer(question, inputType, options = []) {
+    updateOverlay("AI Thinking...", "AI-Fill");
+    console.log(`   🧠 Asking AI: "${question}"`);
+
+    const res = await new Promise(r => chrome.storage.local.get(['candidateProfile', 'botSettings'], res => r(res)));
+
+    // Fetch resume text from Google Docs if available
+    let resumeText = "";
+    const docId = res.botSettings?.baseResumeDocId;
+    if (docId) {
+        try {
+            const resp = await fetch(`https://docs.google.com/document/d/${docId}/export?format=txt`);
+            if (resp.ok) resumeText = await resp.text();
+        } catch (e) { /* silent */ }
+    }
+
+    // Combine profile + resume for rich context
+    const context = {
+        profile: res.candidateProfile,
+        resumeText: resumeText.substring(0, 4000)
+    };
+
+    return new Promise(resolve => {
+        chrome.runtime.sendMessage({
+            action: "ask_ai_question",
+            question: question,
+            inputType: inputType,
+            options: options,
+            userContext: context
+        }, (response) => {
+            if (response && response.success) {
+                console.log(`   🤖 AI Answer: "${response.answer}"`);
+                resolve(response.answer);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+// --- Helper: Check Match with Score ---
+async function checkJobMatchWithScore(jdText) {
+    return new Promise(resolve => {
+        chrome.runtime.sendMessage({
+            action: "check_job_match_score",
+            jobDescription: jdText
+        }, res => {
+            if (res && res.success) resolve({ score: res.score });
+            else resolve({ score: 100 }); // Fail open if error
         });
     });
 }

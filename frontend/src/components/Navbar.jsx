@@ -16,6 +16,7 @@ export default function Navbar() {
             <Github className="w-5 h-5" />
           </a>
           <Link to="/" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Home</Link>
+          <Link to="/blog" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Blog</Link>
           <Link to="/dashboard" className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-all shadow-md hover:shadow-lg">
             Go to App
           </Link>

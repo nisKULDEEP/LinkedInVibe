@@ -37,6 +37,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             linkedinUsername: request.username || ''
         }, () => {
             console.log("✅ Tokens saved from Dashboard!");
+
+            // Notify user visually since the web UI might not update
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icon.png',
+                title: 'LinkedInVibe Connected!',
+                message: 'Your account has been successfully linked. You can now use Pro features.'
+            });
+
             sendResponse({ success: true });
         });
         return true;
@@ -82,6 +91,406 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         return true;
     }
+    // --- RESUME MATCHING ---
+    if (request.action === "analyze_job_match") {
+        const { jobDescription, resumeContext } = request;
+        chrome.storage.local.get(['geminiApiKey'], async (res) => {
+            if (!res.geminiApiKey) {
+                sendResponse({ success: false, error: "No API Key" });
+                return;
+            }
+
+            const prompt = `
+            Act as a Hiring Manager. Compare the Candidate Resume with the Job Description.
+            
+            JOB DESCRIPTION:
+            ${jobDescription.substring(0, 5000)}
+
+            CANDIDATE RESUME/PROFILE:
+            ${typeof resumeContext === 'string' ? resumeContext.substring(0, 3000) : JSON.stringify(resumeContext).substring(0, 3000)}
+
+            TASK:
+            1. Rate the match from 0 to 100.
+            2. Be strict but fair.
+            3. Return JSON ONLY: { "score": number, "reason": "short explanation" }
+            `;
+
+            try {
+                const text = await generatePostWithGeminiDirect(prompt, res.geminiApiKey);
+                const clean = text.replace(/```json|```/g, '').trim();
+                const json = JSON.parse(clean);
+                sendResponse({ success: true, score: json.score, reason: json.reason });
+            } catch (e) {
+                console.error("Match Analysis Failed", e);
+                sendResponse({ success: false, error: e.message });
+            }
+        });
+        return true; // Async response
+    }
+
+    // --- SMART TEXT ENHANCER ---
+    if (request.action === "enhance_text") {
+        const { text } = request;
+        chrome.storage.local.get(['geminiApiKey', 'userProfile'], async (res) => {
+            if (!res.geminiApiKey) {
+                sendResponse({ success: false, error: "API Key missing. Set it in the extension." });
+                return;
+            }
+
+            const prompt = `
+            You are a professional LinkedIn ghostwriter and communication expert.
+            Enhance the following text that the user is typing into a LinkedIn text box (e.g. a post or a comment).
+            Make it sound professional, engaging, and typo-free, but keep the original intent and tone.
+            Do NOT add hashtags unless they are already present or completely relevant.
+            Do NOT enclose your response in quotes. Reply ONLY with the enhanced text, nothing else.
+
+            User's Context/Profile: ${res.userProfile ? res.userProfile.headline : "No context"}
+            
+            Original Text: "${text}"
+            `;
+
+            try {
+                const enhancedText = await generatePostWithGeminiDirect(prompt, res.geminiApiKey);
+                sendResponse({ success: true, text: enhancedText.trim() });
+            } catch (e) {
+                console.error("Text Enhancement Failed", e);
+                sendResponse({ success: false, error: e.message });
+            }
+        });
+        return true; // Async response
+    }
+
+    // --- AI QUESTION ANSWERING ---
+    if (request.action === "ask_ai_question") {
+        const { question, inputType, options, userContext } = request;
+        chrome.storage.local.get(['geminiApiKey'], async (res) => {
+            if (!res.geminiApiKey) {
+                sendResponse({ success: false, error: "No API Key" });
+                return;
+            }
+
+            const profileStr = JSON.stringify(userContext?.profile || {}).substring(0, 3000);
+            const resumeStr = (userContext?.resumeText || "").substring(0, 4000);
+
+            const prompt = `
+            You are an AI assistant filling out a job application form on behalf of a candidate.
+            Answer the following question based on the candidate's profile and resume.
+
+            QUESTION: "${question}"
+            INPUT TYPE: ${inputType}
+            ${options && options.length ? `OPTIONS: ${options.join(' | ')}` : "FREE TEXT (no options)"}
+
+            CANDIDATE PROFILE:
+            ${profileStr}
+
+            CANDIDATE RESUME:
+            ${resumeStr}
+
+            RULES:
+            1. Answer TRUTHFULLY based on the candidate's real experience from profile and resume.
+            2. If it asks about years of experience with a specific technology, check the resume for when they first used it. If not mentioned at all, answer "0".
+            3. If it asks "Have you completed [education level]?" — check the resume for education section.
+            4. If OPTIONS are provided, you MUST return one of the options EXACTLY as written.
+            5. For Yes/No questions: answer "Yes" if the resume/profile supports it, otherwise "No".
+            6. For numeric fields (years of experience, salary, etc.), return ONLY a number.
+            7. Return ONLY the answer value. No quotes, no explanation, no extra text.
+            `;
+
+            try {
+                const answer = await generatePostWithGeminiDirect(prompt, res.geminiApiKey);
+                console.log(`AI Answer for "${question}": `, answer);
+                sendResponse({ success: true, answer: answer.trim() });
+            } catch (e) {
+                console.error("AI Question Failed", e);
+                sendResponse({ success: false, error: e.message });
+            }
+        });
+        return true;
+    }
+
+    // --- ATS RESUME ANALYSIS ---
+    if (request.action === "analyze_ats_score") {
+        chrome.storage.local.get(['geminiApiKey', 'candidateProfile'], async (res) => {
+            if (!res.geminiApiKey) {
+                sendResponse({ success: false, error: "No API Key" });
+                return;
+            }
+
+            const profile = res.candidateProfile || {};
+            const profileText = JSON.stringify(profile);
+
+            const prompt = `
+            Act as an Expert ATS(Applicant Tracking System) Auditor.
+            Analyze this Candidate Profile and Resume Data.
+
+            CANDIDATE DATA:
+            ${profileText.substring(0, 5000)}
+
+            TASK:
+            1. Calculate an ATS Compatibility Score(0 - 100) based on completeness, keyword density for general tech roles, and clarity.
+            2. Provide 1 short sentence of critical feedback.
+            
+            OUTPUT JSON ONLY:
+            { "score": number, "feedback": "string" }
+            `;
+
+            try {
+                const text = await generatePostWithGeminiDirect(prompt, res.geminiApiKey);
+                const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                const json = JSON.parse(clean);
+                sendResponse({ success: true, score: json.score, feedback: json.feedback });
+            } catch (e) {
+                console.error("ATS Analysis Failed", e);
+                sendResponse({ success: false, error: e.message });
+            }
+        });
+        return true;
+    }
+
+    // --- RESUME TAILORING AGENT ---
+    if (request.action === "tailor_resume") {
+        const { jobDescription } = request;
+        chrome.storage.local.get(['geminiApiKey', 'candidateProfile'], async (res) => {
+            if (!res.geminiApiKey) {
+                sendResponse({ success: false, error: "No API Key" });
+                return;
+            }
+
+            const profile = res.candidateProfile || {};
+            const profileText = JSON.stringify(profile);
+
+            const prompt = `
+            Act as a Professional Resume Writer.
+            Tailor the Candidate Profile to match the Job Description(JD).
+
+            JOB DESCRIPTION:
+            ${jobDescription.substring(0, 5000)}
+
+            CANDIDATE PROFILE:
+            ${profileText.substring(0, 5000)}
+
+            RULES:
+            1. Optimize 'linkedinHeadline', 'linkedinSummary', 'experience', and 'coverLetter' to target JD keywords.
+            2. STRICT TRUTH: Do NOT invent skills.If JD asks for ".NET" and candidate has no C# /.NET, do NOT add it.
+            3. INFERENCE ALLOWED: If JD asks for "Kubernetes" and candidate has "Backend Systems/Docker", you MAY add Kubernetes if it implies familiarity.
+            4. Keep output JSON structure identical to input(only updated fields).
+            
+            OUTPUT JSON ONLY:
+            {
+                "linkedinHeadline": "...",
+                    "linkedinSummary": "...",
+                        "coverLetter": "...",
+                            "experience": "..."
+            }
+            `;
+
+            try {
+                const text = await generatePostWithGeminiDirect(prompt, res.geminiApiKey);
+                const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                const tailoredFields = JSON.parse(clean);
+
+                // Merge with original to keep other fields (name, phone etc) safely
+                const tailoredProfile = { ...profile, ...tailoredFields };
+
+                sendResponse({ success: true, tailoredProfile: tailoredProfile });
+            } catch (e) {
+                console.error("Tailoring Failed", e);
+                sendResponse({ success: false, error: e.message });
+            }
+        });
+        return true;
+    }
+
+    // --- JOB MATCH SCORING ---
+    if (request.action === "check_job_match_score") {
+        const { jobDescription } = request;
+        chrome.storage.local.get(['geminiApiKey', 'candidateProfile'], async (res) => {
+            if (!res.geminiApiKey) { sendResponse({ success: false, score: 0 }); return; }
+
+            const profile = JSON.stringify(res.candidateProfile || {});
+            const prompt = `
+            Rate the match between this Candidate and Job Description(0 - 100).
+                JD: ${jobDescription.substring(0, 3000)}
+            CANDIDATE: ${profile.substring(0, 3000)}
+            OUTPUT JSON: { "score": number }
+            `;
+
+            try {
+                const text = await generatePostWithGeminiDirect(prompt, res.geminiApiKey);
+                const json = JSON.parse(text.replace(/```json/gi, '').replace(/```/g, '').trim());
+                sendResponse({ success: true, score: json.score });
+            } catch (e) {
+                sendResponse({ success: false, error: e.message });
+            }
+        });
+        return true;
+    }
+
+    // --- LOG APPLICATION (LOCAL STORAGE) ---
+    if (request.action === "log_application") {
+        const { rowData } = request;
+        const dateKey = new Date().toISOString().split('T')[0]; // e.g. "2026-02-28"
+        chrome.storage.local.get(['appliedJobs'], (res) => {
+            const all = res.appliedJobs || {};
+            if (!all[dateKey]) all[dateKey] = [];
+            all[dateKey].push({
+                ...rowData,
+                timestamp: new Date().toISOString()
+            });
+            chrome.storage.local.set({ appliedJobs: all }, () => {
+                console.log('📊 Application logged locally! (' + dateKey + ')');
+                sendResponse({ success: true });
+            });
+        });
+        return true;
+    }
+
+    // --- CREATE TAILORED RESUME (LOCAL DOWNLOAD) ---
+    if (request.action === "create_tailored_resume") {
+        const { jobDescription, jobTitle, company } = request;
+        chrome.storage.local.get(['geminiApiKey', 'candidateProfile', 'botSettings'], async (res) => {
+            const profile = res.candidateProfile || {};
+            const settings = res.botSettings || {};
+
+            if (!res.geminiApiKey) {
+                sendResponse({ success: false, error: 'No Gemini API Key' });
+                return;
+            }
+
+            try {
+                // Step 1: Get base resume content
+                let baseResumeText = JSON.stringify(profile, null, 2);
+                const baseDocId = settings.baseResumeDocId;
+
+                if (baseDocId) {
+                    try {
+                        // Read from PUBLIC Google Doc export URL (FREE, no API key)
+                        const exportUrl = `https://docs.google.com/document/d/${baseDocId}/export?format=txt`;
+                        const resp = await fetch(exportUrl);
+                        if (resp.ok) {
+                            baseResumeText = await resp.text();
+                            console.log('📄 Loaded base resume from public Google Doc');
+                        } else {
+                            console.warn('📄 Doc not public or not found, using profile data');
+                        }
+                    } catch (e) {
+                        console.warn('📄 Could not fetch doc:', e.message);
+                    }
+                }
+
+                // Step 2: AI tailor the resume
+                const prompt = `
+                Act as a Professional Resume Writer and ATS Optimization Expert.
+                Tailor this resume for the following job.
+
+                JOB TITLE: ${jobTitle || 'N/A'}
+                COMPANY: ${company || 'N/A'}
+                JOB DESCRIPTION:
+                ${(jobDescription || '').substring(0, 5000)}
+
+                BASE RESUME:
+                ${baseResumeText.substring(0, 5000)}
+
+                STRICT RULES:
+                1. NEVER FABRICATE: Do NOT add skills, tools, or experiences that are not in the base resume.
+                   - Example: If the job asks for Angular but the candidate knows React.js, do NOT add Angular.
+                2. ADJACENT SKILLS ONLY: You MAY add closely related skills that a developer could realistically learn in 1 week, IF the base resume shows strong related experience.
+                   - OK: React developer → add Next.js, Redux Toolkit (same ecosystem)
+                   - OK: Python developer → add FastAPI if they know Flask (same language)
+                   - NOT OK: React developer → add Angular, Vue.js (different frameworks)
+                   - NOT OK: Java developer → add Go, Rust (different languages)
+                3. Reorder and emphasize existing skills that match the JD.
+                4. Optimize bullet points to use action verbs and quantifiable achievements that align with the JD.
+                5. Include a tailored "Professional Summary" section at the top.
+                6. Keep the same job history and education — only adjust descriptions for relevance.
+                7. Output as clean, well-structured HTML with inline CSS.
+                8. Use a professional single-column layout. NO markdown code fences in output.
+                9. Use professional fonts (Arial/Segoe UI), proper headings (h1, h2), and bullet points.
+                10. Do NOT include a cover letter. Focus only on the resume.
+                `;
+
+                let tailoredContent = await generatePostWithGeminiDirect(prompt, res.geminiApiKey);
+
+                // Strip markdown code fences if Gemini wrapped the HTML in ```html...```
+                tailoredContent = tailoredContent.replace(/^```html?\s*/i, '').replace(/```\s*$/i, '').trim();
+
+                // Step 3: Download as styled HTML file locally (named for easy identification)
+                const safeTitle = (jobTitle || 'Job').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+                const safeCompany = (company || 'Company').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+                const filename = `Resume_${safeCompany}_${safeTitle}_${Date.now()}.html`;
+
+                // Wrap in a complete HTML document with print-ready CSS
+                const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resume - ${jobTitle} @ ${company}</title><style>@page{size:A4;margin:15mm}body{font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#222;line-height:1.6;font-size:13px}h1{color:#0a66c2;border-bottom:2px solid #0a66c2;padding-bottom:8px;font-size:22px}h2{color:#004182;margin-top:18px;font-size:16px;border-bottom:1px solid #ddd;padding-bottom:4px}h3{font-size:14px;margin-top:12px}ul{padding-left:20px}li{margin-bottom:4px}a{color:#0a66c2}@media print{body{margin:0;padding:15px;font-size:12px}}</style></head><body>${tailoredContent}</body></html>`;
+
+                // Convert to PDF via backend
+                let finalDataUrl = "";
+                let finalFilename = filename.replace('.html', '.pdf');
+                let pdfBase64 = null;
+
+                try {
+                    console.log('📄 Calling backend to render PDF...');
+                    const pdfResponse = await fetch('http://localhost:3000/api/generate-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ html: htmlDoc, filename: finalFilename })
+                    });
+
+                    if (pdfResponse.ok) {
+                        const pdfData = await pdfResponse.json();
+                        if (pdfData.success && pdfData.pdf) {
+                            pdfBase64 = pdfData.pdf;
+                            finalDataUrl = `data:application/pdf;base64,${pdfData.pdf}`;
+                            console.log('📄 Successfully generated PDF via backend');
+                        } else {
+                            throw new Error('Backend returned success: false');
+                        }
+                    } else {
+                        throw new Error(`HTTP error! status: ${pdfResponse.status}`);
+                    }
+                } catch (err) {
+                    console.error('📄 Backend PDF generation failed, falling back to HTML blob:', err);
+                    finalFilename = filename; // Keep .html extension
+                    const blob = new Blob([htmlDoc], { type: 'text/html' });
+                    // Convert chunk to data URL synchronously via FileReader
+                    finalDataUrl = await new Promise(r => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => r(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                }
+
+                // Trigger download
+                chrome.downloads.download({
+                    url: finalDataUrl,
+                    filename: finalFilename,
+                    saveAs: false
+                }, (downloadId) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('📄 Download failed:', chrome.runtime.lastError.message);
+                    } else {
+                        console.log('📄 Tailored resume saved! Download ID:', downloadId);
+                    }
+                });
+
+                // Step 4: Also produce tailored profile fields for form filling
+                const tailoredProfile = { ...profile };
+                tailoredProfile.coverLetter = tailoredContent;
+
+                sendResponse({
+                    success: true,
+                    tailoredProfile,
+                    resumeFilename: finalFilename,
+                    resumeBase64: pdfBase64, // Send the base64 back for auto-upload
+                    tailoredContent
+                });
+            } catch (e) {
+                console.error('📄 Resume tailoring failed:', e.message);
+                sendResponse({ success: false, error: e.message });
+            }
+        });
+        return true;
+    }
+
     // --- NOTIFICATIONS ---
     if (request.action === "notify_user") {
         const { title, message } = request;
@@ -90,6 +499,74 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             iconUrl: 'icon.png',
             title: title || 'LinkedInVibe Bot',
             message: message || 'Attention required!'
+        });
+        return true;
+    }
+
+    // --- BOT NEEDS HELP (CROSS-TAB) ---
+    if (request.action === "bot_needs_help") {
+        const { tabId, unfilledFields, jobTitle, company } = request;
+
+        // Store help request
+        chrome.storage.local.set({ pendingHelpRequest: { tabId, unfilledFields, jobTitle, company, timestamp: Date.now() } });
+
+        // Create system notification
+        chrome.notifications.create('bot-help-' + Date.now(), {
+            type: 'basic',
+            iconUrl: 'icon.png',
+            title: '🤖 Bot Needs Help!',
+            message: `Can\'t auto-fill ${unfilledFields.length} field(s) for ${jobTitle || 'a job'} at ${company || 'a company'}. Click to assist.`,
+            priority: 2,
+            requireInteraction: true
+        });
+
+        // Switch to bot tab on notification click
+        chrome.notifications.onClicked.addListener(function helpClickHandler(notifId) {
+            if (notifId.startsWith('bot-help-') && tabId) {
+                chrome.tabs.update(tabId, { active: true });
+                chrome.notifications.onClicked.removeListener(helpClickHandler);
+            }
+        });
+
+        sendResponse({ success: true });
+        return true;
+    }
+
+    // --- OPEN EXTERNAL JOB PAGE ---
+    if (request.action === "open_external_job") {
+        const { url, jobTitle, company, jobDescription } = request;
+
+        chrome.tabs.create({ url, active: false }, (tab) => {
+            // Store context for the new tab
+            chrome.storage.local.set({
+                externalJobContext: {
+                    tabId: tab.id,
+                    jobTitle,
+                    company,
+                    jobDescription,
+                    url,
+                    timestamp: Date.now()
+                }
+            });
+
+            // Wait for page to load, then inject universal autofill
+            chrome.tabs.onUpdated.addListener(function tabLoadHandler(tabId, changeInfo) {
+                if (tabId === tab.id && changeInfo.status === 'complete') {
+                    chrome.tabs.onUpdated.removeListener(tabLoadHandler);
+
+                    // Inject the universal autofill script
+                    chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ['universal_autofill.js']
+                    }).then(() => {
+                        console.log('🌐 Universal autofill injected on external job page');
+                    }).catch(e => {
+                        console.error('🌐 Failed to inject autofill:', e.message);
+                    });
+                }
+            });
+
+            sendResponse({ success: true, tabId: tab.id });
         });
         return true;
     }
@@ -440,26 +917,13 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
         const systemPrompt = constructSystemPrompt(scrapedPosts, userProfile, finalTopic);
 
         // 2. Route Request
-        let generatedText = "";
-
-        if (mode === 'pro') {
-            if (!authToken) {
-                sendResponse({ success: false, error: "Link your Pro account in the popup first." });
-                return;
-            }
-            sendStatus(sender.tab.id, "Generating with Pro Cloud...");
-            generatedText = await generatePostWithBackend(systemPrompt, "", authToken);
-
-        } else {
-            // BYOK Mode
-            if (!geminiApiKey) {
-                sendResponse({ success: false, error: "API Key not found. Please set it in the extension popup." });
-                return;
-            }
-            sendStatus(sender.tab.id, "Generating with your Gemini Key...");
-            generatedText = await generatePostWithGeminiDirect(systemPrompt, geminiApiKey);
+        // Force BYOK Mode for now
+        if (!geminiApiKey) {
+            sendResponse({ success: false, error: "API Key not found. Please set it in the extension popup." });
+            return;
         }
-
+        sendStatus(sender.tab.id, "Generating with your Gemini Key...");
+        let generatedText = await generatePostWithGeminiDirect(systemPrompt, geminiApiKey);
         // 3. Post-Process Text (Markdown -> Unicode)
         const formattedText = convertMarkdownToUnicode(generatedText);
         console.log("Text generated:", formattedText.substring(0, 50));
@@ -475,22 +939,13 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
 
         let imageBase64 = null;
 
-        if (mode === 'pro') {
-            // TODO: Implement Backend Image Gen Endpoint. 
-            // For now, we return text only or mock it.
-            // OR: We send a second request to backend for image.
-            sendStatus(sender.tab.id, "Text ready! (Image gen requires local key for now in MVP)");
-            // Temporarily skip image for Pro until backend supports it
-        } else {
-            // BYOK - Use Local Key
-            sendStatus(sender.tab.id, "Text ready! Creating image...");
-            try {
-                const imagePrompt = await generateImagePrompt(geminiApiKey, formattedText);
-                imageBase64 = await generateImageWithGemini(geminiApiKey, imagePrompt);
-            } catch (e) {
-                console.error("Image Gen Failed", e);
-                sendStatus(sender.tab.id, "Image gen failed, using text only.");
-            }
+        // Force BYOK - Use Local Key
+        sendStatus(sender.tab.id, "Text ready! Creating image...");
+        try {
+            imageBase64 = await generateTemplatedImage(geminiApiKey, formattedText);
+        } catch (e) {
+            console.error("Image Gen Failed", e);
+            sendStatus(sender.tab.id, "Image gen failed, using text only.");
         }
 
         sendResponse({ success: true, text: formattedText, imageBase64: imageBase64 });
@@ -520,9 +975,8 @@ async function generatePost(scrapedPosts, sender, sendResponse) {
 // --- Strategies ---
 
 async function generatePostWithBackend(systemPrompt, userMessage, token) {
-    // Current Backend runs on localhost:3000
-    // In production, change this URL
-    const BACKEND_URL = 'http://localhost:3000/api/generate';
+    // Use deployed backend, fallback to localhost for dev
+    const BACKEND_URL = 'https://linkedinvibe.onrender.com/api/generate';
 
     const response = await fetch(BACKEND_URL, {
         method: 'POST',
@@ -710,95 +1164,75 @@ function sendStatus(tabId, message) {
 }
 
 // --- Image Helpers ---
-async function generateImagePrompt(apiKey, postText) {
+
+async function generateTemplatedImage(apiKey, postText) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
-    const imagePromptTemplate = `You are an AI that converts a LinkedIn system-design post into a SINGLE, insight-driven technical illustration.
+    const prompt = `You are an AI that converts a LinkedIn system-design post into a short, punchy programmatic image overlay.
 
-INPUT:
+INPUT POST:
 "${postText.substring(0, 1200)}"
 
-STEP 1 — Extract Core Insight:
-Identify the ONE main design concept the post explains.
-Examples:
-- Fanout on Write vs Fanout on Read
-- Hybrid Fanout Model
-- Cache IDs vs Full Objects
-- Hotkey Problem
+AVAILABLE TEMPLATES:
+- "floral_productivity_card": Best for deep, thoughtful, or high-value concepts. 
 
-STEP 2 — Visual Mapping (MANDATORY):
-The image must visually explain THIS insight alone.
-Do NOT show full system architecture unless required.
-
-INSIGHT → VISUAL MAPPING RULES:
-- Fanout on Write vs Read:
-  • Split-diagram (LEFT = Push, RIGHT = Pull)
-  • Arrows showing compute vs latency tradeoff
-- Hybrid Fanout:
-  • Normal users = push
-  • Celebrities = pull
-  • Clear separation
-- Cache IDs:
-  • Memory blocks labeled "ID-only"
-  • Object blobs outside cache
-- Hotkey Problem:
-  • One node overloaded
-  • Heat/pressure indicators
-
-STYLE:
-- Orthographic technical schematic
-- Flat 2D blueprint
-- White/cyan lines on deep blueprint blue (#004182)
-- Grid lines, measurement arrows, callouts
-- Labels like:
-  "WRITE-TIME COMPUTE"
-  "READ-TIME LATENCY"
-  "HOTKEY NODE"
-
-BRANDING:
-- Thin footer line
-- Text: "LinkedInVibe | System Design"
+TASK:
+1. Extract short, punchy phrases that fit into the following text zones for the selected template.
+2. The "main_headline" should be the core insight (max 35 chars).
+3. The "eyebrow_pill" should be a category or tag (max 15 chars).
+4. The "top_left_tag" and "footer_left" should be branding or contextual info (max 20 chars).
 
 OUTPUT FORMAT:
-A single detailed image prompt describing the schematic clearly and precisely.
+Return ONLY a valid JSON object. No markdown, no explanations.
+Example:
+{
+  "template_id": "floral_productivity_card",
+  "text_data": {
+    "top_left_tag": "SYSTEM DESIGN",
+    "eyebrow_pill": "ARCHITECTURE",
+    "main_headline": "FANOUT ON WRITE",
+    "footer_left": "LINKEDINVIBE"
+  }
+}
 `;
 
-    const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: imagePromptTemplate }] }] })
-    });
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Anime sketch style tech illustration";
-}
-
-async function generateImageWithGemini(apiKey, imagePrompt) {
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
-
-    const requestBody = {
-        contents: [{ parts: [{ text: imagePrompt }] }],
-        generationConfig: {
-            responseModalities: ["IMAGE"]
-        }
-    };
-
-    const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
-    });
-
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
-
-    // Extract Base64
-    const b64 = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-
-    if (!b64) {
-        console.warn("No base64 image found. Full response:", JSON.stringify(data));
-        throw new Error("Model returned no image data.");
+    // 1. Get JSON from Gemini
+    let extractRes;
+    try {
+        const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        extractRes = JSON.parse(cleanJson);
+    } catch (e) {
+        console.error("Failed to extract image template JSON from Gemini", e);
+        throw new Error("Local AI failed to extract image metadata.");
     }
-    return b64;
+
+    // 2. Render Image via Backend
+    const RENDER_URL = 'http://localhost:3000/api/render-image'; // Local fallback or user config ideal here
+
+    try {
+        const renderResponse = await fetch(RENDER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(extractRes)
+        });
+
+        const renderData = await renderResponse.json();
+        if (!renderData.success) throw new Error(renderData.error || "Backend rendering failed");
+
+        const base64Data = renderData.imageBase64.replace(/^data:image\/\w+;base64,/, "");
+        return base64Data;
+
+    } catch (e) {
+        console.error("Backend Image Render Failed", e);
+        throw new Error("Failed to render image on backend.");
+    }
 }
 
 function convertMarkdownToUnicode(text) {
@@ -827,45 +1261,93 @@ function convertMarkdownToUnicode(text) {
 // --- AI Helper Functions ---
 
 async function analyzeFormWithGemini(apiKey, profile, formContext, modelName = "gemini-2.5-flash-lite", jobDescription = "") {
-    // Default to a valid model if none provided
     if (!modelName) modelName = "gemini-2.5-flash-lite";
-
-    // Map UI values to API model names if needed, or assume UI sends correct API values
-    // UI sends: gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro
-    // We construct URL dynamically
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-    // Construct System Prompt
-    const systemPrompt = `
-    You are an intelligent form-filling assistant. 
-    Your task is to map a user's CANDIDATE PROFILE to a list of FORM FIELDS from a job application.
+    // Detect if formContext is HTML-based (universal autofill) or structured JSON (LinkedIn modal)
+    const isHtmlMode = formContext && typeof formContext === 'object' && formContext.html;
 
-    CANDIDATE PROFILE:
-    ${JSON.stringify(profile, null, 2)}
+    let systemPrompt;
 
-    JOB DESCRIPTION CONTEXT:
-    ${jobDescription ? jobDescription.substring(0, 1000) : "N/A"}
+    if (isHtmlMode) {
+        // UNIVERSAL AUTOFILL MODE: AI analyzes raw HTML
+        systemPrompt = `
+        You are an intelligent job application form-filling assistant.
+        Your task is to analyze the HTML of a job application page and determine what fields to fill.
 
-    FORM FIELDS TO FILL (JSON):
-    ${JSON.stringify(formContext, null, 2)}
-    
-    INSTRUCTIONS:
-    1. For each item in "FORM FIELDS", determine the best value from "CANDIDATE PROFILE".
-    2. Use smart inference:
-       - If form asks "Years of Experience" (id: v_123) and profile has "5", map "v_123": "5".
-       - If form asks "Why do you want this job?" and profile has generic "Additional Info", adapt it if possible or just use it.
-       - If form asks "Gender" (Select) and profile says "Male", return "Male" (the exact text to select).
-       - If form asks for something NOT in profile (e.g., "Are you a veteran?"), infer "No" if not stated, or leave blank/null if unsafe to guess.
-       - If field is hidden or irrelevant, ignore it.
-    
-    OUTPUT FORMAT:
-    Return ONLY a JSON object mapping Field IDs to Values.
-    Example: { "vibe_0_123": "John Doe", "vibe_1_456": "5" }
-    Do NOT include markdown formatting. Return RAW JSON.
-    `;
+        CANDIDATE PROFILE:
+        ${JSON.stringify(profile, null, 2)}
+
+        ${formContext.jobDescription ? `JOB BEING APPLIED FOR:
+        Title: ${formContext.jobTitle || 'N/A'}
+        Company: ${formContext.company || 'N/A'}
+        Description: ${formContext.jobDescription.substring(0, 2000)}
+        ` : ''}
+
+        PAGE HTML (sanitized form content):
+        ${formContext.html.substring(0, 12000)}
+
+        PAGE URL: ${formContext.url || 'N/A'}
+        PAGE TYPE: ${formContext.pageType || 'unknown'}
+
+        INSTRUCTIONS:
+        1. Identify ALL fillable form fields (input, select, textarea) in the HTML.
+        2. For each field, determine the best value from the CANDIDATE PROFILE.
+        3. Use smart inference:
+           - "First Name" → use profile firstName
+           - "Email" → use profile email
+           - "Years of Experience" → use profile experience
+           - Select/dropdown fields → return the EXACT option text to select
+           - Checkboxes (T&C, agreements) → set to true/agree
+           - Radio buttons → return the best matching option text
+           - Cover letter / "Why do you want this job?" → generate a brief personalized answer
+           - If a field cannot be filled from profile → set value to null
+        4. Do NOT fill password fields.
+        5. For file upload fields (resume/CV), set value to "FILE_UPLOAD_REQUIRED".
+
+        OUTPUT FORMAT (JSON ONLY, no markdown):
+        {
+            "fields": [
+                { "selector": "CSS selector for the element", "label": "human-readable field label", "value": "value to fill", "confidence": 0.0-1.0 }
+            ],
+            "nextAction": "submit" | "next_page" | "need_help" | "unknown",
+            "pageAssessment": "brief description of what this page is"
+        }
+
+        IMPORTANT: Return ONLY raw JSON. No markdown, no code blocks.
+        `;
+    } else {
+        // LEGACY MODE: Structured form fields from LinkedIn modal
+        systemPrompt = `
+        You are an intelligent form-filling assistant. 
+        Your task is to map a user's CANDIDATE PROFILE to a list of FORM FIELDS from a job application.
+
+        CANDIDATE PROFILE:
+        ${JSON.stringify(profile, null, 2)}
+
+        JOB DESCRIPTION CONTEXT:
+        ${jobDescription ? jobDescription.substring(0, 1000) : "N/A"}
+
+        FORM FIELDS TO FILL (JSON):
+        ${JSON.stringify(formContext, null, 2)}
+        
+        INSTRUCTIONS:
+        1. For each item in "FORM FIELDS", determine the best value from "CANDIDATE PROFILE".
+        2. Use smart inference:
+           - If form asks "Years of Experience" (id: v_123) and profile has "5", map "v_123": "5".
+           - If form asks "Why do you want this job?" and profile has generic "Additional Info", adapt it if possible or just use it.
+           - If form asks "Gender" (Select) and profile says "Male", return "Male" (the exact text to select).
+           - If form asks for something NOT in profile (e.g., "Are you a veteran?"), infer "No" if not stated, or leave blank/null if unsafe to guess.
+           - If field is hidden or irrelevant, ignore it.
+        
+        OUTPUT FORMAT:
+        Return ONLY a JSON object mapping Field IDs to Values.
+        Example: { "vibe_0_123": "John Doe", "vibe_1_456": "5" }
+        Do NOT include markdown formatting. Return RAW JSON.
+        `;
+    }
 
     try {
-        // Use Gemini Flash Lite for speed/cost
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -879,7 +1361,6 @@ async function analyzeFormWithGemini(apiKey, profile, formContext, modelName = "
 
         if (!text) throw new Error("Empty AI response");
 
-        // Clean JSON (remove \`\`\`json wrappers if any)
         const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
         return JSON.parse(cleanJson);
     } catch (e) {
@@ -887,3 +1368,4 @@ async function analyzeFormWithGemini(apiKey, profile, formContext, modelName = "
         throw new Error("AI processing failed.");
     }
 }
+

@@ -15,9 +15,11 @@
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.90.1",
     "body-parser": "^2.2.2",
+    "canvas": "^3.2.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "puppeteer": "^24.37.5",
     "stripe": "^20.1.2"
   }
 }

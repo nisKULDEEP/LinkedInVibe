@@ -18,4 +18,12 @@ router.post('/schedule/:id/complete', verifyAuth, markComplete);
 const { generateLocalImage } = require('../controllers/localAiController');
 router.post('/generate-image-local', verifyAuth, generateLocalImage);
 
+// Programmatic Image Rendering (Zero Cost, BYOK uses this directly)
+const { renderTemplate } = require('../controllers/imageController');
+router.post('/render-image', renderTemplate); // No verifyAuth needed since it's just a canvas operation
+
+// HTML to PDF conversion for tailored resumes
+const { generatePdf } = require('../controllers/pdfController');
+router.post('/generate-pdf', generatePdf);
+
 module.exports = router;

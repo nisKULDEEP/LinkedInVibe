@@ -1,623 +1,364 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const mainMenuDiv = document.getElementById('mainMenu');
-  const onboardingDiv = document.getElementById('onboarding');
-  const actionAreaDiv = document.getElementById('actionArea');
-  const jobHelperMenuDiv = document.getElementById('jobHelperMenu');
-  const menuFooter = document.getElementById('menuFooter');
-  const statusDiv = document.getElementById('status');
-
-  // Buttons
-  const usernameInput = document.getElementById('usernameInput');
-  const saveUserBtn = document.getElementById('saveUserBtn');
-  const autoScrapeBtn = document.getElementById('autoScrapeBtn');
-  const btnInstantPost = document.getElementById('btnInstantPost');
-  const btnSmartScheduler = document.getElementById('btnSmartScheduler');
-  const btnJobHelper = document.getElementById('btnJobHelper');
-  const backToMenuBtn = document.getElementById('backToMenu');
-  const backFromJobMenuBtn = document.getElementById('backFromJobMenu');
-
-  const btnFillForm = document.getElementById('btnFillForm');
-  const btnEditProfile = document.getElementById('btnEditProfile');
-
-  // Inputs
-  const apiKeyInput = document.getElementById('apiKeyInput');
-  // The following elements are no longer needed for mode selection
-  //  // Load configured user and keys
-  // --- Draft Saving Logic ---
-  const saveDraft = (key, value) => {
-    chrome.storage.local.set({ [key]: value });
+  // ─── Elements ───
+  const sections = {
+    onboarding: document.getElementById('onboarding'),
+    mainMenu: document.getElementById('mainMenu'),
+    jobHelper: document.getElementById('jobHelperMenu'),
+    botDashboard: document.getElementById('botDashboardMenu'),
+    actionArea: document.getElementById('actionArea')
   };
 
-  usernameInput.addEventListener('input', (e) => saveDraft('draft_username', e.target.value));
-  apiKeyInput.addEventListener('input', (e) => saveDraft('draft_geminiApiKey', e.target.value));
+  const $ = id => document.getElementById(id);
 
-  // Token Status UI Elements
-  const tokenStatusDiv = document.getElementById('tokenStatus');
-  const dashboardInstructions = document.getElementById('dashboardInstructions');
-  const connectError = document.getElementById('connectError');
+  const usernameInput = $('usernameInput');
+  const apiKeyInput = $('apiKeyInput');
+  const saveUserBtn = $('saveUserBtn');
+  const tokenStatusDiv = $('tokenStatus');
+  const dashboardInstructions = $('dashboardInstructions');
+  const connectError = $('connectError');
+  const headerUser = $('headerUser');
 
-  // Check and update token status
-  function updateTokenStatus() {
-    chrome.storage.local.get(['authToken', 'refreshToken'], (result) => {
-      const hasTokens = result.authToken && result.refreshToken;
-
-      if (hasTokens) {
-        // Tokens received!
-        tokenStatusDiv.style.display = 'block';
-        tokenStatusDiv.style.background = '#dcfce7';
-        tokenStatusDiv.style.border = '1px solid #86efac';
-        tokenStatusDiv.innerHTML = '<span style="color: #16a34a; font-weight: 600;">✅ Dashboard Connected!</span>';
-        dashboardInstructions.style.display = 'none';
-        saveUserBtn.disabled = false;
-        saveUserBtn.style.opacity = '1';
-        saveUserBtn.style.cursor = 'pointer';
-        connectError.style.display = 'none';
-      } else {
-        // No tokens yet
-        tokenStatusDiv.style.display = 'block';
-        tokenStatusDiv.style.background = '#fef9c3';
-        tokenStatusDiv.style.border = '1px solid #fde047';
-        tokenStatusDiv.innerHTML = '<span style="color: #ca8a04;">⏳ Waiting for Dashboard connection...</span>';
-        dashboardInstructions.style.display = 'block';
-        saveUserBtn.disabled = true;
-        saveUserBtn.style.opacity = '0.5';
-        saveUserBtn.style.cursor = 'not-allowed';
-      }
-    });
+  // ─── Navigation ───
+  function showSection(name) {
+    Object.values(sections).forEach(s => s.classList.remove('active'));
+    if (sections[name]) sections[name].classList.add('active');
   }
-
-  // Initial check and periodic refresh (in case user sends tokens while popup is open)
-  updateTokenStatus();
-  setInterval(updateTokenStatus, 2000);
-
-  // Determine State on Load
-  chrome.storage.local.get([
-    'linkedinUsername', 'geminiApiKey', 'authToken',
-    'draft_username', 'draft_geminiApiKey'
-  ], (result) => {
-    // Check if ALL confirmed credentials exist -> Main Menu
-    if (result.linkedinUsername && result.geminiApiKey && result.authToken) {
-      showMainMenu(result.linkedinUsername);
-    } else {
-      // Restore Drafts or Partial Confirmed
-      if (result.draft_username || result.linkedinUsername) {
-        usernameInput.value = result.draft_username || result.linkedinUsername;
-      }
-      if (result.draft_geminiApiKey || result.geminiApiKey) {
-        apiKeyInput.value = result.draft_geminiApiKey || result.geminiApiKey;
-      }
-      showOnboarding();
-    }
-  });
-
-  // --- Navigation & UI ---
 
   function showMainMenu(username) {
-    mainMenuDiv.style.display = 'block';
-    menuFooter.style.display = 'block';
-    onboardingDiv.style.display = 'none';
-    actionAreaDiv.style.display = 'none';
-    jobHelperMenuDiv.style.display = 'none';
-
-    const userDisplay = document.getElementById('menuUserDisplay');
-    if (userDisplay) userDisplay.textContent = username;
-
-    statusDiv.textContent = "";
+    showSection('mainMenu');
+    if (headerUser) headerUser.textContent = username || '';
   }
 
-  function showOnboarding() {
-    mainMenuDiv.style.display = 'none';
-    menuFooter.style.display = 'none';
-    onboardingDiv.style.display = 'block';
-    actionAreaDiv.style.display = 'none';
-    jobHelperMenuDiv.style.display = 'none';
-    statusDiv.textContent = "Setup required";
+  // ─── Draft Saving ───
+  usernameInput?.addEventListener('input', e => chrome.storage.local.set({ draft_username: e.target.value }));
+  apiKeyInput?.addEventListener('input', e => chrome.storage.local.set({ draft_geminiApiKey: e.target.value }));
+
+  // ─── Token Status (Disabled - BYOK Only) ───
+  function updateTokenStatus() {
+    if (saveUserBtn) { saveUserBtn.disabled = false; saveUserBtn.style.opacity = '1'; }
   }
+  updateTokenStatus();
 
-  function showActionArea() {
-    // "Instant Post" Sub-page
-    mainMenuDiv.style.display = 'none';
-    menuFooter.style.display = 'none';
-    onboardingDiv.style.display = 'none';
-    actionAreaDiv.style.display = 'block';
-    jobHelperMenuDiv.style.display = 'none';
-    statusDiv.textContent = "Ready to create magic...";
-  }
-
-  // --- Event Listeners ---
-
-  // 1. Menu Interactions
-  if (btnInstantPost) {
-    btnInstantPost.addEventListener('click', () => {
-      showActionArea();
-    });
-  }
-
-  if (btnSmartScheduler) {
-    btnSmartScheduler.addEventListener('click', () => {
-      // Open Dashboard in new tab
-      chrome.tabs.create({ url: 'https://nisKULDEEP.github.io/LinkedInVibe/#/dashboard?tab=scheduler' });
-    });
-  }
-
-  if (backToMenuBtn) {
-    backToMenuBtn.addEventListener('click', () => {
-      // We need username for the menu, fetch it again or store it globally
-      chrome.storage.local.get(['linkedinUsername'], (res) => {
-        showMainMenu(res.linkedinUsername || 'User');
-      });
-    });
-  }
-
-  // --- Job Helper Listeners ---
-  const btnAiFill = document.getElementById('btnAiFill');
-  const aiModelSelect = document.getElementById('aiModelSelect');
-
-  // Agent Status UI
-  const agentStatusDiv = document.getElementById('agentStatus');
-  const agentStep = document.getElementById('agentStep');
-  const agentDetail = document.getElementById('agentDetail');
-
-  function updateAgentStatus(step, detail) {
-    agentStatusDiv.style.display = 'block';
-    agentStep.textContent = step;
-    agentDetail.textContent = detail;
-  }
-
-  // Model Selection Persistence
-  if (aiModelSelect) {
-    chrome.storage.local.get(['selectedAiModel'], (res) => {
-      if (res.selectedAiModel) {
-        aiModelSelect.value = res.selectedAiModel;
-      }
-    });
-
-    aiModelSelect.addEventListener('change', () => {
-      chrome.storage.local.set({ selectedAiModel: aiModelSelect.value });
-    });
-  }
-
-  if (btnJobHelper) {
-    btnJobHelper.addEventListener('click', () => {
-      mainMenuDiv.style.display = 'none';
-      menuFooter.style.display = 'none';
-      jobHelperMenuDiv.style.display = 'block';
-      // statusDiv.textContent = 'Ready to assist...';
-    });
-  }
-
-  if (backFromJobMenuBtn) {
-    backFromJobMenuBtn.addEventListener('click', () => {
-      chrome.storage.local.get(['linkedinUsername'], (res) => {
-        showMainMenu(res.linkedinUsername || 'User');
-      });
-    });
-  }
-
-  if (btnEditProfile) {
-    console.log("✅ Edit Profile Button Found");
-    btnEditProfile.addEventListener('click', () => {
-      console.log("🖱️ Edit Profile Clicked");
-      try {
-        if (chrome.runtime.openOptionsPage) {
-          chrome.runtime.openOptionsPage((e) => {
-            if (chrome.runtime.lastError) {
-              console.error("openOptionsPage failed:", chrome.runtime.lastError);
-              chrome.tabs.create({ url: 'options.html' });
-            }
-          });
-        } else {
-          chrome.tabs.create({ url: 'options.html' });
-        }
-      } catch (e) {
-        console.error("Error opening options:", e);
-        chrome.tabs.create({ url: 'options.html' });
-      }
-    });
-  } else {
-    console.error("❌ Edit Profile Button NOT FOUND in DOM");
-  }
-
-  // --- 1. LOCAL FILL ---
-  if (btnFillForm) {
-    btnFillForm.addEventListener('click', () => {
-      statusDiv.textContent = 'Injecting Local Magic...';
-
-      chrome.storage.local.get(['resumeFile'], (result) => {
-        const resumeFile = result.resumeFile || null;
-
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]) {
-            chrome.scripting.executeScript({
-              target: { tabId: tabs[0].id },
-              files: ['autofill.js']
-            }, () => {
-              // Trigger Local Mode with Resume Data
-              chrome.tabs.sendMessage(tabs[0].id, {
-                action: "fill_form_local",
-                resume: resumeFile
-              });
-              window.close();
-            });
-          }
-        });
-      });
-    });
-  }
-
-  // --- 2. AI SMART FILL ---
-  if (btnAiFill) {
-    btnAiFill.addEventListener('click', () => {
-      updateAgentStatus("Thinking...", "Initializing Gemini Agent");
-
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          // Inject script first
-          chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            files: ['autofill.js']
-          }, () => {
-            updateAgentStatus("Reading Form...", "Scanning page structure");
-
-            // A. Ask Content Script to Scan Form
-            chrome.tabs.sendMessage(tabs[0].id, { action: "scan_form_for_ai" }, (response) => {
-              if (!response || !response.formContext) {
-                updateAgentStatus("Error", "Could not read form data.");
-                return;
-              }
-
-              updateAgentStatus("Consulting AI...", "Mapping your profile to this form");
-
-              // Get selected model
-              const selectedModel = aiModelSelect ? aiModelSelect.value : 'gemini-1.5-flash';
-
-              // B. Send to Background to Call Gemini
-              chrome.runtime.sendMessage({
-                action: "analyze_form_with_gemini",
-                formContext: response.formContext,
-                modelName: selectedModel
-              }, (aiResponse) => {
-                if (aiResponse && aiResponse.success && aiResponse.mapping) {
-                  updateAgentStatus("Filling Fields...", "Applying AI intelligence");
-
-                  // C. Apply AI Results
-                  chrome.tabs.sendMessage(tabs[0].id, {
-                    action: "apply_ai_mapping",
-                    mapping: aiResponse.mapping
-                  });
-
-                  setTimeout(() => window.close(), 2000);
-                } else {
-                  updateAgentStatus("AI Error", aiResponse?.error || "Gemini unavailable.");
-                }
-              });
-            });
-          });
-        }
-      });
-    });
-  }
-
-  // 2. Setup Logic
-  // modeByokBtn.addEventListener('click', () => setMode('byok')); // No longer needed
-  // modeProBtn.addEventListener('click', () => setMode('pro')); // No longer needed
-
-  // function setMode(mode) { // No longer needed
-  //     currentMode = mode;
-  //     if (mode === 'byok') {
-  //         modeByokBtn.style.background = '#fff';
-  //         modeByokBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-  //         modeProBtn.style.background = 'transparent';
-  //         modeProBtn.style.boxShadow = 'none';
-  //         byokFields.style.display = 'block';
-  //         proFields.style.display = 'none';
-  //     } else {
-  //         modeProBtn.style.background = '#fff';
-  //         modeProBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-  //         modeByokBtn.style.background = 'transparent';
-  //         modeByokBtn.style.boxShadow = 'none';
-  //         proFields.style.display = 'block';
-  //         byokFields.style.display = 'none';
-  //     }
-  // }
-
-  // Simplified Auth Flow: Username + API Key only. Tokens come from Dashboard via bridge.
-  saveUserBtn.addEventListener('click', () => {
-    const rawInput = usernameInput.value.trim();
+  // ─── Connect & Start ───
+  saveUserBtn?.addEventListener('click', () => {
+    const username = usernameInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
 
-    if (!rawInput) { showError('Username required'); return; }
-    if (!apiKey) { showError('Gemini Key required'); return; }
+    if (!username) { showError("Enter your LinkedIn username."); usernameInput.focus(); return; }
+    if (!apiKey) { showError("Enter your Gemini API Key."); apiKeyInput.focus(); return; }
 
-    let cleanUser = rawInput;
-    if (rawInput.includes('linkedin.com/in/')) {
-      cleanUser = rawInput.split('linkedin.com/in/')[1].replace(/\/$/, '');
-    }
+    saveUserBtn.textContent = "Saving... ⏳";
+    saveUserBtn.disabled = true;
 
-    // Check if tokens were sent from Dashboard
-    chrome.storage.local.get(['authToken', 'refreshToken'], (result) => {
-      if (!result.authToken || !result.refreshToken) {
-        showError('Open Dashboard & click "Send to Extension" first!');
-        return;
-      }
-
-      // Save username and API key (tokens already saved by bridge)
-      chrome.storage.local.set({
-        linkedinUsername: cleanUser,
-        geminiApiKey: apiKey,
-        authMode: 'unified'
-      }, () => {
-        // Clear drafts on success
-        chrome.storage.local.remove(['draft_username', 'draft_geminiApiKey', 'draft_authToken']);
-        showMainMenu(cleanUser);
-      });
-    });
-  });
-
-  // 3. Footer Actions
-  const changeUserLink = document.getElementById('changeUser');
-  const resetKeyLink = document.getElementById('resetKey');
-
-  changeUserLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    showOnboarding();
-  });
-
-  resetKeyLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    chrome.storage.local.remove(['geminiApiKey', 'authToken', 'refreshToken'], () => {
-      apiKeyInput.value = '';
-      showOnboarding();
-      statusDiv.textContent = 'Credentials reset. Connect Dashboard again.';
+    chrome.storage.local.set({
+      linkedinUsername: username,
+      geminiApiKey: apiKey,
+      authMode: 'byok', // Force BYOK
+      draft_username: null,
+      draft_geminiApiKey: null
+    }, () => {
+      saveUserBtn.textContent = "Connect & Start 🚀";
+      saveUserBtn.disabled = false;
+      showMainMenu(username);
     });
   });
 
   function showError(msg) {
-    statusDiv.textContent = msg;
-    statusDiv.style.color = 'red';
+    if (connectError) { connectError.textContent = "❌ " + msg; connectError.style.display = 'block'; }
   }
 
-  // --- Generation Logic (Only triggered from Action Area) ---
-  const scheduleSelect = document.getElementById('scheduleDelay');
-  const customTimeInput = document.getElementById('customTimeInput');
-
-  scheduleSelect.addEventListener('change', () => {
-    if (scheduleSelect.value === 'custom') {
-      customTimeInput.style.display = 'block';
-      customTimeInput.focus();
+  // ─── Determine State on Load ───
+  chrome.storage.local.get([
+    'linkedinUsername', 'geminiApiKey', 'authToken',
+    'draft_username', 'draft_geminiApiKey'
+  ], res => {
+    if (res.linkedinUsername && res.geminiApiKey && res.authToken) {
+      showMainMenu(res.linkedinUsername);
     } else {
-      customTimeInput.style.display = 'none';
+      if (res.draft_username || res.linkedinUsername) usernameInput.value = res.draft_username || res.linkedinUsername;
+      if (res.draft_geminiApiKey || res.geminiApiKey) apiKeyInput.value = res.draft_geminiApiKey || res.geminiApiKey;
+      showSection('onboarding');
     }
   });
 
-  autoScrapeBtn.addEventListener('click', () => {
-    // ... (Keep existing generation Logic) ...
-    chrome.storage.local.get(['linkedinUsername'], (result) => {
-      const savedUser = result.linkedinUsername;
-      if (!savedUser) return;
+  // ═══ MAIN MENU BUTTONS ═══
 
-      const customTopic = document.getElementById('customTopic').value.trim();
-      const selectValue = scheduleSelect.value;
-      let delayMinutes = 0;
+  // Auto Fill Application
+  $('btnJobHelper')?.addEventListener('click', () => showSection('jobHelper'));
 
-      if (selectValue === 'custom') {
-        const timeStr = customTimeInput.value;
-        if (!timeStr) {
-          showError("Please set a time."); return;
-        }
-        const [hours, mins] = timeStr.split(':').map(Number);
-        const now = new Date();
-        const target = new Date();
-        target.setHours(hours, mins, 0, 0);
-        if (target <= now) target.setDate(target.getDate() + 1);
+  // AI Post Generator
+  $('btnInstantPost')?.addEventListener('click', () => showSection('actionArea'));
 
-        delayMinutes = Math.round((target - now) / 60000);
-      } else {
-        delayMinutes = parseInt(selectValue, 10);
-      }
-
-      chrome.storage.local.set({ customTopic: customTopic });
-
-      if (delayMinutes > 0) {
-        statusDiv.textContent = `Scheduled in ${delayMinutes} min...`;
-        chrome.runtime.sendMessage({
-          action: "schedule_post",
-          minutes: delayMinutes,
-          username: savedUser
-        }, (response) => {
-          if (response && response.success) {
-            statusDiv.textContent = `✅ Scheduled! Closing...`;
-            setTimeout(() => window.close(), 1500);
-          } else {
-            statusDiv.textContent = 'Scheduling failed.';
-          }
-        });
-        return;
-      }
-
-      // Immediate Post
-      const targetUrl = `https://www.linkedin.com/in/${savedUser}/`;
-      chrome.storage.local.set({ autoScrape: true }, () => {
-        statusDiv.textContent = 'Starting Magic Flow...';
-        chrome.tabs.query({ url: "*://www.linkedin.com/*" }, (tabs) => {
-          const exactTab = tabs.find(t => t.url.includes(targetUrl));
-          const anyLiTab = tabs.find(t => t.url.includes("linkedin.com"));
-          const tabToReuse = exactTab || anyLiTab;
-
-          if (tabToReuse) {
-            chrome.tabs.update(tabToReuse.id, { url: targetUrl, active: true }, () => {
-              chrome.tabs.reload(tabToReuse.id);
-              window.close();
-            });
-          } else {
-            chrome.tabs.create({ url: targetUrl }, () => {
-              window.close();
-            });
-          }
-        });
-      });
+  // Bot Applier
+  $('btnBotApplier')?.addEventListener('click', () => {
+    showSection('botDashboard');
+    chrome.storage.local.get(['botActive', 'dailyApplicationCount', 'minMatchScore', 'enableAiQuestions', 'appStrategy', 'atsData'], res => {
+      updateBotUI(res.botActive);
+      if ($('statAppliedCount')) $('statAppliedCount').textContent = res.dailyApplicationCount || 0;
+      if ($('minMatchScore')) $('minMatchScore').value = res.minMatchScore || 70;
+      if ($('enableAiQuestions')) $('enableAiQuestions').checked = res.enableAiQuestions || false;
+      updateStrategyUI(res.appStrategy || 'standard');
+      if (res.atsData) updateAtsUI(res.atsData.score, res.atsData.feedback);
     });
   });
 
+  // ═══ BACK BUTTONS ═══
 
-  // --- BOT APPLIER UI HANDLERS ---
-  const btnBotApplier = document.getElementById('btnBotApplier');
-  const botDashboardMenu = document.getElementById('botDashboardMenu');
-  const backFromBotMenu = document.getElementById('backFromBotMenu');
-  const btnStartBot = document.getElementById('btnStartBot');
-  const btnStopBot = document.getElementById('btnStopBot');
-  const btnBotSettings = document.getElementById('btnBotSettings');
-  const botStatusText = document.getElementById('botStatusText');
-  const statAppliedCount = document.getElementById('statAppliedCount');
-  const statAction = document.getElementById('statAction');
+  $('backFromJobMenu')?.addEventListener('click', () => {
+    chrome.storage.local.get(['linkedinUsername'], r => showMainMenu(r.linkedinUsername || 'User'));
+  });
 
-  if (btnBotApplier) {
-    btnBotApplier.addEventListener('click', () => {
-      mainMenuDiv.style.display = 'none';
-      botDashboardMenu.style.display = 'block';
-      // Check status on open
-      chrome.storage.local.get(['botActive', 'dailyApplicationCount'], (res) => {
-        updateBotUI(res.botActive);
-        if (statAppliedCount) statAppliedCount.textContent = res.dailyApplicationCount || 0;
-      });
-    });
-  }
+  $('backFromBotMenu')?.addEventListener('click', () => {
+    chrome.storage.local.get(['linkedinUsername'], r => showMainMenu(r.linkedinUsername || 'User'));
+  });
 
-  if (backFromBotMenu) {
-    backFromBotMenu.addEventListener('click', () => {
-      mainMenuDiv.style.display = 'block';
-      botDashboardMenu.style.display = 'none';
-    });
-  }
+  $('backToMenu')?.addEventListener('click', () => {
+    chrome.storage.local.get(['linkedinUsername'], r => showMainMenu(r.linkedinUsername || 'User'));
+  });
 
-  if (btnBotSettings) {
-    btnBotSettings.addEventListener('click', () => {
-      chrome.tabs.create({ url: 'options.html' });
-    });
-  }
+  // ═══ JOB HELPER BUTTONS ═══
 
-  // --- Profile Validation Before Bot Start ---
-  function validateProfileForBot() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['candidateProfile', 'resumeFile'], (result) => {
-        const missingFields = [];
-        const data = result.candidateProfile || {};
-
-        // Check basic required fields
-        const requiredFields = [
-          { key: 'firstName', label: 'First Name' },
-          { key: 'lastName', label: 'Last Name' },
-          { key: 'email', label: 'Email' },
-          { key: 'phone', label: 'Phone' }
-        ];
-
-        requiredFields.forEach(field => {
-          if (!data[field.key] || data[field.key].trim() === '') {
-            missingFields.push(field.label);
+  // Local Fill
+  $('btnFillForm')?.addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "fill_form" }, response => {
+          if (chrome.runtime.lastError) {
+            $('status').textContent = "⚠️ Not on a LinkedIn job page";
+          } else {
+            $('status').textContent = "✅ Form filled!";
           }
         });
+      }
+    });
+  });
 
-        // Check resume (either link or file)
-        if ((!data.resumeLink || data.resumeLink.trim() === '') && !result.resumeFile) {
-          missingFields.push('Resume');
-        }
+  // AI Smart Fill
+  $('btnAiFill')?.addEventListener('click', () => {
+    const agentStatus = $('agentStatus');
+    const agentStep = $('agentStep');
+    if (agentStatus) agentStatus.style.display = 'block';
+    if (agentStep) agentStep.textContent = 'Analyzing form...';
 
-        // Check job titles (stored as preferredRoles)
-        if (!data.preferredRoles || data.preferredRoles.length === 0) {
-          missingFields.push('Preferred Job Titles');
-        }
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (tabs[0]) {
+        const model = $('aiModelSelect')?.value || 'gemini-2.0-flash-exp';
+        chrome.tabs.sendMessage(tabs[0].id, { action: "ai_fill_form", modelName: model }, response => {
+          if (chrome.runtime.lastError) {
+            if (agentStep) agentStep.textContent = '⚠️ Not on a job page';
+          } else if (response?.success) {
+            if (agentStep) agentStep.textContent = '✅ AI fill complete!';
+          } else {
+            if (agentStep) agentStep.textContent = '❌ ' + (response?.error || 'Failed');
+          }
+          setTimeout(() => { if (agentStatus) agentStatus.style.display = 'none'; }, 3000);
+        });
+      }
+    });
+  });
 
-        if (missingFields.length > 0) {
-          resolve({ valid: false, missing: missingFields });
-        } else {
-          resolve({ valid: true, missing: [] });
-        }
+  // Edit Profile → Options page
+  $('btnEditProfile')?.addEventListener('click', () => chrome.tabs.create({ url: 'options.html' }));
+
+  // ═══ FOOTER BUTTONS ═══
+
+  $('btnSettings')?.addEventListener('click', () => chrome.tabs.create({ url: 'options.html' }));
+
+  $('changeUser')?.addEventListener('click', e => {
+    e.preventDefault();
+    chrome.tabs.create({ url: 'options.html' });
+  });
+
+  $('resetKey')?.addEventListener('click', e => {
+    e.preventDefault();
+    if (confirm('Reset all settings? You will need to set up again.')) {
+      chrome.storage.local.clear(() => location.reload());
+    }
+  });
+
+  $('reportBug')?.addEventListener('click', e => {
+    e.preventDefault();
+    chrome.tabs.create({ url: 'https://github.com/nisKULDEEP/LinkedInVibe/issues/new' });
+  });
+
+  // ═══ POST GENERATOR ═══
+
+  $('autoScrapeBtn')?.addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "auto_scrape_and_generate" }, response => {
+          if (chrome.runtime.lastError) {
+            $('status').textContent = "⚠️ Open LinkedIn first";
+          }
+        });
+      }
+    });
+  });
+
+  $('scheduleDelay')?.addEventListener('change', e => {
+    const custom = $('customTimeInput');
+    if (custom) custom.style.display = e.target.value === 'custom' ? 'block' : 'none';
+  });
+
+  $('linkOpenScheduler')?.addEventListener('click', e => {
+    e.preventDefault();
+    chrome.tabs.create({ url: 'https://nisKULDEEP.github.io/LinkedInVibe/#/dashboard?tab=scheduler' });
+  });
+
+  // ═══ BOT STRATEGY ═══
+
+  function updateStrategyUI(strategy) {
+    const thresh = $('thresholdConfig');
+    if (strategy === 'threshold') {
+      if ($('strategy_threshold')) $('strategy_threshold').checked = true;
+      if (thresh) thresh.style.display = 'block';
+    } else if (strategy === 'tailor') {
+      if ($('strategy_tailor')) $('strategy_tailor').checked = true;
+      if (thresh) thresh.style.display = 'none';
+    } else {
+      if ($('strategy_standard')) $('strategy_standard').checked = true;
+      if (thresh) thresh.style.display = 'none';
+    }
+  }
+
+  $('strategy_standard')?.addEventListener('change', function () {
+    if (this.checked) { updateStrategyUI('standard'); chrome.storage.local.set({ appStrategy: 'standard' }); }
+  });
+  $('strategy_threshold')?.addEventListener('change', function () {
+    if (this.checked) { updateStrategyUI('threshold'); chrome.storage.local.set({ appStrategy: 'threshold' }); }
+  });
+  $('strategy_tailor')?.addEventListener('change', function () {
+    if (this.checked) { updateStrategyUI('tailor'); chrome.storage.local.set({ appStrategy: 'tailor' }); }
+  });
+
+  $('minMatchScore')?.addEventListener('change', function () {
+    chrome.storage.local.set({ minMatchScore: this.value });
+  });
+  $('enableAiQuestions')?.addEventListener('change', function () {
+    chrome.storage.local.set({ enableAiQuestions: this.checked });
+  });
+
+  // ═══ ATS ═══
+
+  $('linkUpdateResume')?.addEventListener('click', e => { e.preventDefault(); chrome.tabs.create({ url: 'options.html' }); });
+
+  $('btnRefreshAts')?.addEventListener('click', e => {
+    e.preventDefault();
+    if ($('atsScoreCircle')) $('atsScoreCircle').textContent = '...';
+    if ($('atsFeedback')) $('atsFeedback').style.display = 'none';
+
+    chrome.runtime.sendMessage({ action: "analyze_ats_score" }, response => {
+      if (response?.success) {
+        updateAtsUI(response.score, response.feedback);
+        chrome.storage.local.set({ atsData: { score: response.score, feedback: response.feedback, timestamp: Date.now() } });
+      } else {
+        if ($('atsScoreCircle')) $('atsScoreCircle').textContent = '?';
+        if ($('atsFeedback')) { $('atsFeedback').style.display = 'block'; $('atsFeedback').textContent = "Error: " + (response?.error || "Failed"); }
+      }
+    });
+  });
+
+  function updateAtsUI(score, feedback) {
+    const circle = $('atsScoreCircle');
+    if (circle) {
+      circle.textContent = score;
+      const color = score >= 80 ? '#059669' : score >= 60 ? '#eab308' : '#dc2626';
+      circle.style.borderColor = color;
+      circle.style.color = color;
+    }
+    if ($('atsFeedback') && feedback) {
+      $('atsFeedback').style.display = 'block';
+      $('atsFeedback').textContent = feedback;
+    }
+  }
+
+  // ═══ BOT START / STOP ═══
+
+  $('btnBotSettings')?.addEventListener('click', () => chrome.tabs.create({ url: 'options.html' }));
+
+  function validateProfileForBot() {
+    return new Promise(resolve => {
+      chrome.storage.local.get(['candidateProfile', 'botSettings'], res => {
+        const missing = [];
+        const d = res.candidateProfile || {};
+        const settings = res.botSettings || {};
+        ['firstName', 'lastName', 'email', 'phone'].forEach(k => {
+          if (!d[k] || d[k].trim() === '') missing.push(k);
+        });
+        // Validate that a Google Doc resume is linked
+        const hasResume = settings.baseResumeDocId;
+        if (!hasResume) missing.push('Resume');
+        if (!d.preferredRoles || d.preferredRoles.length === 0) missing.push('Job Titles');
+        resolve({ valid: missing.length === 0, missing });
       });
     });
   }
 
-  if (btnStartBot) {
-    btnStartBot.addEventListener('click', async () => {
-      // First, validate profile
-      const validation = await validateProfileForBot();
+  $('btnStartBot')?.addEventListener('click', async () => {
+    const v = await validateProfileForBot();
+    if (!v.valid) {
+      alert(`⚠️ Complete your profile first!\n\nMissing: ${v.missing.join(', ')}`);
+      chrome.tabs.create({ url: 'options.html' });
+      return;
+    }
 
-      if (!validation.valid) {
-        // Show alert and redirect to options
-        const missingList = validation.missing.join(', ');
-        alert(`⚠️ Please complete your profile first!\n\nMissing: ${missingList}\n\nYou'll be redirected to the settings page.`);
-        chrome.tabs.create({ url: 'options.html' });
-        return;
-      }
-
-      // Profile is valid, proceed with bot start
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { action: "start_bot" }, (response) => {
-            if (chrome.runtime.lastError) {
-              console.log("ℹ️ Bot script not ready. Reloading page...");
-
-              chrome.storage.local.set({ botActive: true });
-              updateBotUI(true);
-
-              if (tabs[0].url.includes("/jobs/search")) {
-                chrome.tabs.reload(tabs[0].id);
-              } else {
-                chrome.tabs.update(tabs[0].id, { url: "https://www.linkedin.com/jobs/search/" });
-              }
-            } else {
-              console.log("🚀 Bot started successfully!");
-              updateBotUI(true);
-            }
-          });
-        } else {
-          chrome.tabs.create({ url: "https://www.linkedin.com/jobs/search/" }, () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "start_bot" }, response => {
+          if (chrome.runtime.lastError) {
             chrome.storage.local.set({ botActive: true });
             updateBotUI(true);
-          });
-        }
-      });
-    });
-  }
-
-  if (btnStopBot) {
-    btnStopBot.addEventListener('click', () => {
-      chrome.storage.local.set({ botActive: false });
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { action: "stop_bot" }, (response) => {
-            // Suppress "Receiving end does not exist" error
-            // If the content script isn't there, we don't care because we already set botActive = false in storage
-            if (chrome.runtime.lastError) {
-              console.log("Note: Bot script not reachable (tab closed or not loaded).");
+            if (tabs[0].url?.includes("/jobs/search")) {
+              chrome.tabs.reload(tabs[0].id);
+            } else {
+              chrome.tabs.update(tabs[0].id, { url: "https://www.linkedin.com/jobs/search/" });
             }
-          });
-        }
-      });
-      updateBotUI(false);
+          } else {
+            updateBotUI(true);
+          }
+        });
+      } else {
+        chrome.tabs.create({ url: "https://www.linkedin.com/jobs/search/" }, () => {
+          chrome.storage.local.set({ botActive: true });
+          updateBotUI(true);
+        });
+      }
     });
-  }
-
-  function updateBotUI(isActive) {
-    if (isActive) {
-      botStatusText.textContent = "Running... 🏃‍♂️";
-      botStatusText.style.color = "#059669";
-      btnStartBot.style.display = 'none';
-      btnStopBot.style.display = 'inline-block';
-    } else {
-      botStatusText.textContent = "Idle - Ready";
-      botStatusText.style.color = "#4b5563";
-      btnStartBot.style.display = 'inline-block';
-      btnStopBot.style.display = 'none';
-      statAction.textContent = "Waiting...";
-    }
-  }
-
-  // Listen for stats updates from content script
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "update_bot_stats") {
-      if (statAppliedCount) statAppliedCount.textContent = request.count;
-      if (statAction) statAction.textContent = "Applied to job!";
-    }
   });
 
+  $('btnStopBot')?.addEventListener('click', () => {
+    chrome.storage.local.set({ botActive: false });
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "stop_bot" }, () => {
+          if (chrome.runtime.lastError) console.log("Bot tab not reachable");
+        });
+      }
+    });
+    updateBotUI(false);
+  });
+
+  function updateBotUI(active) {
+    const start = $('btnStartBot');
+    const stop = $('btnStopBot');
+    const text = $('botStatusText');
+    if (active) {
+      if (text) { text.textContent = "Running... 🏃‍♂️"; text.style.color = "#059669"; }
+      if (start) start.style.display = 'none';
+      if (stop) stop.style.display = 'inline-block';
+    } else {
+      if (text) { text.textContent = "Idle - Ready"; text.style.color = "#4b5563"; }
+      if (start) start.style.display = 'inline-block';
+      if (stop) stop.style.display = 'none';
+      if ($('statAction')) $('statAction').textContent = "Idle";
+    }
+  }
+
+  // ═══ Stats updates from content script ═══
+  chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === "update_bot_stats") {
+      if ($('statAppliedCount')) $('statAppliedCount').textContent = request.count;
+      if ($('statAction')) $('statAction').textContent = "Applied!";
+    }
+  });
 });

@@ -5,228 +5,729 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LinkedInVibe</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="ai_styles.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      width: 340px;
+      background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+      color: #1f2937;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #0a66c2, #004182);
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .header .title {
+      font-size: 15px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .header .user {
+      font-size: 10px;
+      opacity: 0.8;
+    }
+
+    .header .gear {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      border: none;
+      color: white;
+    }
+
+    .header .gear:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Content */
+    .content {
+      padding: 14px;
+    }
+
+    /* Section */
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Onboarding */
+    .ob-step {
+      margin-bottom: 12px;
+    }
+
+    .ob-step label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+
+    .ob-step input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .ob-step input:focus {
+      outline: none;
+      border-color: #0a66c2;
+      box-shadow: 0 0 0 2px rgba(10, 102, 194, 0.1);
+    }
+
+    .ob-helper {
+      text-align: right;
+      font-size: 10px;
+      margin-top: 2px;
+    }
+
+    .ob-helper a {
+      color: #0a66c2;
+      text-decoration: none;
+    }
+
+    .ob-dash {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #bae6fd;
+    }
+
+    .ob-dash label {
+      color: #0369a1;
+      font-weight: 600;
+    }
+
+    .token-status {
+      margin: 6px 0;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      display: none;
+    }
+
+    .ob-dash-link {
+      display: inline-block;
+      background: #0ea5e9;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      background: linear-gradient(135deg, #0a66c2, #004182);
+      box-shadow: 0 2px 8px rgba(10, 102, 194, 0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(10, 102, 194, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 8px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      color: #4b5563;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: #0a66c2;
+      color: #0a66c2;
+    }
+
+    /* Menu Grid */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .menu-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .menu-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+      border-color: #0a66c2;
+    }
+
+    .menu-card .mc-icon {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .menu-card .mc-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #374151;
+      line-height: 1.3;
+    }
+
+    /* Sub-page header */
+    .sub-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .back-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+    }
+
+    .back-btn:hover {
+      border-color: #0a66c2;
+      color: #0a66c2;
+    }
+
+    .sub-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    /* Bot page */
+    .bot-status {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .bot-emoji {
+      font-size: 36px;
+      margin-bottom: 4px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #4b5563;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #9ca3af;
+    }
+
+    .bot-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .strategy-box {
+      background: #fefce8;
+      border: 1px solid #fde047;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .strategy-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #854d0e;
+      margin-bottom: 6px;
+    }
+
+    .strat-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+
+    .strat-option input {
+      margin-top: 2px;
+    }
+
+    .strat-option label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .strat-option p {
+      font-size: 9px;
+      color: #666;
+      margin: 0;
+    }
+
+    .strat-ai-box {
+      padding: 6px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 6px;
+      border: 1px dashed #eab308;
+      margin-top: 4px;
+    }
+
+    .strat-ai-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: #ca8a04;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .bot-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    .bot-actions button {
+      width: auto;
+      padding: 8px 20px;
+      font-size: 12px;
+    }
+
+    .btn-start {
+      background: linear-gradient(135deg, #059669, #047857);
+    }
+
+    .btn-stop {
+      color: #dc2626;
+      border-color: #dc2626;
+    }
+
+    .bot-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+    }
+
+    /* Job Helper */
+    .model-select {
+      width: 100%;
+      padding: 6px;
+      font-size: 11px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      margin-bottom: 8px;
+    }
+
+    .ai-status {
+      text-align: center;
+      display: none;
+      margin-top: 8px;
+    }
+
+    .ai-status .dots {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .ai-status .dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #0a66c2;
+      animation: bounce 0.6s infinite alternate;
+    }
+
+    .ai-status .dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .ai-status .dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+      to {
+        transform: translateY(-4px);
+        opacity: 0.5;
+      }
+    }
+
+    /* Post section */
+    .post-textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 12px;
+      resize: vertical;
+      min-height: 50px;
+      font-family: inherit;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 8px;
+      font-size: 10px;
+    }
+
+    .footer a {
+      color: #0a66c2;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .footer .sep {
+      color: #d1d5db;
+    }
+
+    /* Status bar */
+    .status-bar {
+      text-align: center;
+      font-size: 10px;
+      color: #9ca3af;
+      padding-top: 6px;
+    }
+
+    .connect-error {
+      font-size: 10px;
+      color: #dc2626;
+      text-align: center;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .threshold-config {
+      margin-left: 20px;
+      margin-bottom: 6px;
+      display: none;
+    }
+
+    .threshold-config input {
+      width: 50px;
+      padding: 3px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+  </style>
 </head>
 
 <body>
-  <div class="container">
-    <!-- Header -->
-    <div class="app-header">
-      <img src="icon.png" class="logo" alt="Logo" width="36" height="36">
-      <div class="header-text">
-        <h1>LinkedInVibe</h1>
-        <p class="subtitle">Viral Posts • Auto Apply • AI Job Assist</p>
-      </div>
-      <div class="info-icon" id="infoIcon">ℹ️</div>
+  <!-- Header -->
+  <div class="header" id="appHeader">
+    <img src="icon.png" alt="Logo">
+    <div>
+      <div class="title">LinkedInVibe</div>
+      <div class="user" id="headerUser"></div>
     </div>
-    <div id="disclaimerTooltip" class="disclaimer-tooltip">
-      <strong>Privacy &amp; Compliance</strong><br>
-      • We scrape your top 10 posts related to you.<br>
-      • All data is saved in <strong>Chrome Local Storage</strong>.<br>
-      • Your API Key is stored locally on your device.<br>
-      • No data is sent to external servers.
-    </div>
+    <button class="gear" id="btnSettings" title="Settings">⚙️</button>
+  </div>
 
-    <!-- Onboarding Section -->
-    <div id="onboarding" class="section" style="display:none;">
-      <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
-        To use LinkedInVibe, complete these steps:
-      </p>
-
-      <div class="input-group">
+  <div class="content">
+    <!-- ══ ONBOARDING ══ -->
+    <div class="section" id="onboarding">
+      <div class="ob-step">
         <label>1. LinkedIn Username</label>
-        <input type="text" id="usernameInput" placeholder="e.g. johndoe" />
+        <input type="text" id="usernameInput" placeholder="e.g. johndoe">
       </div>
-
-      <div class="input-group">
-        <label>2. Google Gemini Key (Free)</label>
-        <input type="password" id="apiKeyInput" placeholder="Paste API Key here" />
-        <div class="helper-link">
-          <a href="https://aistudio.google.com/app/apikey" target="_blank">Get Key ↗</a>
-        </div>
+      <div class="ob-step">
+        <label>2. Gemini API Key (Free)</label>
+        <input type="password" id="apiKeyInput" placeholder="Paste API Key">
+        <div class="ob-helper"><a href="https://aistudio.google.com/app/apikey" target="_blank">Get Key ↗</a></div>
       </div>
-
-      <div class="input-group" id="dashboardSection"
-        style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
-        <label style="color: #0369a1; font-weight: 600;">3. Connect Dashboard</label>
-        <div id="tokenStatus" style="margin: 8px 0; padding: 8px; border-radius: 6px; font-size: 11px; display: none;">
-        </div>
-        <p id="dashboardInstructions" style="font-size: 11px; color: #0284c7; margin: 8px 0; line-height: 1.4;">
-          Open the Dashboard below, login, then click<br />
-          <strong>"Send to Extension"</strong> button.
+      <!-- Pro Mode Hidden for Now
+      <div class="ob-step ob-dash">
+        <label>3. Connect Dashboard</label>
+        <div class="token-status" id="tokenStatus"></div>
+        <p id="dashboardInstructions" style="font-size: 10px; color: #0284c7; margin: 4px 0; line-height: 1.3;">
+          Open Dashboard, login, then click <strong>"Send to Extension"</strong>.
         </p>
-        <a href="https://niskuldeep.github.io/LinkedInVibe/#/dashboard" target="_blank"
-          style="display: inline-block; background: #0ea5e9; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 500;">
-          Open Dashboard →
-        </a>
+        <a href="https://niskuldeep.github.io/LinkedInVibe/#/dashboard" target="_blank" class="ob-dash-link">Open Dashboard →</a>
       </div>
-
-      <button id="saveUserBtn" class="primary-btn" style="width: 100%; margin-top: 10px;" disabled>Connect & Start
-        🚀</button>
-      <p id="connectError" style="font-size: 11px; color: #dc2626; margin-top: 6px; text-align: center; display: none;">
-      </p>
+      -->
+      <button class="btn-primary" id="saveUserBtn" style="margin-top: 10px;">Connect & Start 🚀</button>
+      <p class="connect-error" id="connectError"></p>
     </div>
 
-    <!-- Main Menu -->
-    <div id="mainMenu" class="section" style="display:none;">
-      <div style="text-align: center; margin-bottom: 12px;">
-        <h2 style="margin: 0; font-size: 16px;">Hello, <span id="menuUserDisplay" class="highlight">User</span>!</h2>
-        <p style="margin: 2px 0 0 0; color: #666; font-size: 11px;">What would you like to do?</p>
-      </div>
-
+    <!-- ══ MAIN MENU ══ -->
+    <div class="section" id="mainMenu">
       <div class="menu-grid">
-        <button id="btnJobHelper" class="menu-card">
-          <div class="icon">💼</div>
-          <div class="label">Auto fill Application</div>
+        <button class="menu-card" id="btnJobHelper">
+          <div class="mc-icon">💼</div>
+          <div class="mc-label">Auto Fill</div>
         </button>
+        <button class="menu-card" id="btnInstantPost">
+          <div class="mc-icon">⚡️</div>
+          <div class="mc-label">AI Post</div>
+        </button>
+        <button class="menu-card" id="btnBotApplier">
+          <div class="mc-icon">🤖</div>
+          <div class="mc-label">Bot Applier</div>
+        </button>
+      </div>
 
-        <button id="btnInstantPost" class="menu-card">
-          <div class="icon">⚡️</div>
-          <div class="label">Viral Post</div>
-        </button>
-
-        <button id="btnSmartScheduler" class="menu-card">
-          <div class="icon">📅</div>
-          <div class="label">Scheduler</div>
-        </button>
-
-        <button id="btnBotApplier" class="menu-card">
-          <div class="icon">🤖</div>
-          <div class="label">Bot Applier</div>
-        </button>
+      <div class="footer" id="menuFooter">
+        <a href="#" id="changeUser">⚙️ Settings</a>
+        <span class="sep">|</span>
+        <a href="#" id="resetKey">🔄 Reset</a>
+        <span class="sep">|</span>
+        <a href="#" id="reportBug">🐛 Bug</a>
       </div>
     </div>
 
-    <!-- Job Helper Menu -->
-    <div id="jobHelperMenu" class="section" style="display:none;">
-      <div class="header-row">
-        <button id="backFromJobMenu" class="icon-btn">‹</button>
-        <h2 style="font-size: 15px; margin:0;">Job Assistant</h2>
+    <!-- ══ JOB HELPER (Auto Fill) ══ -->
+    <div class="section" id="jobHelperMenu">
+      <div class="sub-header">
+        <button class="back-btn" id="backFromJobMenu">‹</button>
+        <span class="sub-title">Job Auto-Fill</span>
       </div>
 
-      <div style="margin: 10px 0;">
-        <label for="aiModelSelect"
-          style="font-size: 11px; font-weight: 600; color: #4b5563; display: block; margin-bottom: 4px;">Select AI
-          Model:</label>
-        <select id="aiModelSelect"
-          style="width: 100%; padding: 6px; font-size: 12px; border-radius: 6px; border: 1px solid #d1d5db; background: #fff;">
-          <option value="gemini-2.0-flash-exp">⚡️ Gemini 2.0 Flash (Fastest/Free)</option>
-          <option value="gemini-1.5-flash">🚀 Gemini 1.5 Flash (Stable)</option>
-          <option value="gemini-1.5-pro">🧠 Gemini 1.5 Pro (Smarter/High Cost)</option>
-        </select>
-        <p style="font-size: 10px; color: #9ca3af; margin: 4px 0 0 0;">* Check Gemini pricing for API usage.</p>
-      </div>
+      <label style="font-size: 10px; font-weight: 600; color: #6b7280; margin-bottom: 2px; display: block;">AI
+        Model</label>
+      <select class="model-select" id="aiModelSelect">
+        <option value="gemini-2.0-flash-exp">⚡ Gemini 2.0 Flash (Fast)</option>
+        <option value="gemini-1.5-flash">🚀 Gemini 1.5 Flash (Stable)</option>
+        <option value="gemini-1.5-pro">🧠 Gemini 1.5 Pro (Smart)</option>
+      </select>
 
-      <button id="btnFillForm" class="primary-btn compact-btn">⚡️ Local Fill (Instant)</button>
-      <button id="btnAiFill" class="secondary-btn compact-btn"
-        style="margin-top: 8px; border: 1px solid #7c3aed; color: #7c3aed; background: #f5f3ff;">
-        🧠 AI Smart Fill
-      </button>
+      <button class="btn-primary" id="btnFillForm" style="margin-bottom: 6px;">⚡ Local Fill (Instant)</button>
+      <button class="btn-secondary" id="btnAiFill"
+        style="border-color: #7c3aed; color: #7c3aed; background: #f5f3ff;">🧠 AI Smart Fill</button>
+      <button class="btn-secondary" id="btnEditProfile" style="margin-top: 6px;">⚙️ Edit Profile</button>
 
-      <button id="btnEditProfile" class="secondary-btn compact-btn" style="margin-top: 8px;">⚙️ Edit Profile</button>
-
-      <div id="agentStatus" style="display:none; margin-top: 10px; text-align: center;">
-        <div class="ai-loader small">
-          <div class="orb"></div>
-          <div class="orb"></div>
-          <div class="orb"></div>
-        </div>
-        <p id="agentStep" style="font-size: 12px; font-weight: 600; color: #4b5563; margin-top: 5px;"></p>
-        <p id="agentDetail" style="font-size: 10px; color: #9ca3af; margin: 0;"></p>
+      <div class="ai-status" id="agentStatus">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <p id="agentStep" style="font-size: 11px; font-weight: 600; color: #4b5563; margin-top: 4px;"></p>
+        <p id="agentDetail" style="font-size: 9px; color: #9ca3af;"></p>
       </div>
     </div>
 
-    <!-- Bot Dashboard Menu -->
-    <div id="botDashboardMenu" class="section" style="display:none;">
-      <div class="header-row">
-        <button id="backFromBotMenu" class="icon-btn">‹</button>
-        <h2 style="font-size: 16px; margin:0; font-weight:700;">Auto Apply Bot</h2>
+    <!-- ══ BOT APPLIER ══ -->
+    <div class="section" id="botDashboardMenu">
+      <div class="sub-header">
+        <button class="back-btn" id="backFromBotMenu">‹</button>
+        <span class="sub-title">Auto Apply Bot</span>
       </div>
 
-      <div style="text-align: center; padding: 10px 0;">
-        <div style="font-size: 48px; margin-bottom: 12px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🤖</div>
-
-        <div id="botStatusIndicator" class="status-indicator">
-          <div class="dot"></div>
-          <span id="botStatusText">Ready to Start</span>
-        </div>
-
-        <div style="display: flex; justify-content: center; gap: 12px; margin-top: 20px;">
-          <button id="btnStartBot" class="primary-btn"
-            style="width: auto; padding: 10px 24px; background: linear-gradient(135deg, #059669 0%, #047857 100%); margin:0;">
-            ▶ Start Bot
-          </button>
-          <button id="btnStopBot" class="secondary-btn"
-            style="width: auto; padding: 10px 24px; border-color: #dc2626; color: #dc2626; display:none; margin:0;">
-            ⏹ Stop
-          </button>
+      <div class="bot-status">
+        <div class="bot-emoji">🤖</div>
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="botStatusText">Idle - Ready</span>
         </div>
       </div>
 
-      <div class="dashboard-grid">
-        <div class="stats-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 12px; color: #6b7280; font-weight: 500;">Applications Sent</span>
-            <strong id="statAppliedCount" style="font-size: 18px; color: #111827;">0</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 12px; color: #6b7280; font-weight: 500;">Current Action</span>
-            <span id="statAction" style="font-size: 12px; color: #2563eb; font-weight: 500;">Idle</span>
+      <!-- ATS -->
+      <div class="bot-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-weight: 700;">📄 Resume & ATS</span>
+          <a href="#" id="linkUpdateResume" style="font-size: 10px; color: #0a66c2; text-decoration: none;">Update</a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div id="atsScoreCircle"
+            style="width: 32px; height: 32px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #6b7280; border: 2px solid #e5e7eb;">
+            ?</div>
+          <div>
+            <div style="font-size: 10px; font-weight: 500;">ATS Score</div>
+            <button id="btnRefreshAts"
+              style="background: none; border: none; padding: 0; color: #059669; font-size: 9px; cursor: pointer; text-decoration: underline;">Analyze</button>
           </div>
         </div>
+        <p id="atsFeedback"
+          style="display: none; font-size: 9px; color: #666; margin-top: 4px; line-height: 1.3; background: #f9fafb; padding: 4px; border-radius: 4px;">
+        </p>
       </div>
 
-      <button id="btnBotSettings" class="secondary-btn compact-btn" style="margin-top: 15px; font-size:12px;">⚙️
-        Configure Blacklist</button>
+      <!-- Strategy -->
+      <div class="strategy-box">
+        <div class="strategy-title">🧠 Application Strategy</div>
+        <div class="strat-option">
+          <input type="radio" name="appStrategy" id="strategy_standard" value="standard" checked>
+          <div>
+            <label for="strategy_standard">Standard (Free)</label>
+            <p>Apply to all. No AI. Fastest.</p>
+          </div>
+        </div>
+        <div class="strat-ai-box">
+          <div class="strat-ai-label">💰 AI Features</div>
+          <div class="strat-option">
+            <input type="radio" name="appStrategy" id="strategy_threshold" value="threshold">
+            <div>
+              <label for="strategy_threshold">AI Filter</label>
+              <p>Only if Match Score > X%</p>
+            </div>
+          </div>
+          <div class="threshold-config" id="thresholdConfig">
+            <span style="font-size: 10px;">Min: </span>
+            <input type="number" id="minMatchScore" value="70" min="0" max="100">
+            <span style="font-size: 10px;">%</span>
+          </div>
+          <div class="strat-option">
+            <input type="radio" name="appStrategy" id="strategy_tailor" value="tailor">
+            <div>
+              <label for="strategy_tailor">Smart Tailor</label>
+              <p>AI adapts resume per job</p>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+          <input type="checkbox" id="enableAiQuestions" style="accent-color: #059669;">
+          <label for="enableAiQuestions" style="font-size: 10px; color: #374151;">AI Auto-Answer Questions</label>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="bot-actions">
+        <button class="btn-primary btn-start" id="btnStartBot">▶ Start</button>
+        <button class="btn-secondary btn-stop" id="btnStopBot" style="display:none;">⏹ Stop</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="bot-stats">
+        <span>Applied: <strong id="statAppliedCount">0</strong></span>
+        <span id="statAction" style="color: #2563eb; font-weight: 500;">Idle</span>
+      </div>
+
+      <button class="btn-secondary" id="btnBotSettings" style="margin-top: 8px; font-size: 11px;">⚙️ Bot
+        Settings</button>
     </div>
 
-    <!-- Action Area (Viral Post) -->
-    <div id="actionArea" class="section" style="display:none;">
-      <button id="backToMenu" class="back-link">‹ Back to Menu</button>
-
-      <div class="user-display" style="display:none;">
-        User: <span id="displayUser"></span>
+    <!-- ══ POST GENERATOR ══ -->
+    <div class="section" id="actionArea">
+      <div class="sub-header">
+        <button class="back-btn" id="backToMenu">‹</button>
+        <span class="sub-title">AI Post Generator</span>
       </div>
 
-      <div class="action-header">
-        <h2>Create New Post</h2>
-      </div>
+      <button class="btn-primary" id="autoScrapeBtn">✨ Generate Magic Post</button>
 
-      <button id="autoScrapeBtn" class="primary-btn">✨ Generate Magic Post</button>
+      <div style="margin-top: 10px;">
+        <label style="font-size: 11px; font-weight: 500; color: #555;">Custom Topic (Optional)</label>
+        <textarea class="post-textarea" id="customTopic" rows="2" placeholder="e.g. 'React 19 features'"></textarea>
 
-      <div style="margin-top: 15px; width: 100%; text-align: left;">
-        <label style="font-size: 12px; font-weight: 500; color: #555;">Custom Topic (Optional)</label>
-        <textarea id="customTopic" rows="2"
-          placeholder="e.g. 'React 19 features' or 'My journey as a startup founder'"></textarea>
-
-        <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
-          <label style="font-size: 12px; font-weight: 500; color: #555;">Schedule:</label>
-          <select id="scheduleDelay" style="padding: 5px; border-radius: 6px; border: 1px solid #ccc; width: 60%;">
+        <div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+          <label style="font-size: 11px; font-weight: 500; color: #555;">Schedule:</label>
+          <select class="model-select" id="scheduleDelay" style="width: 60%;">
             <option value="0">🚀 Post Now</option>
-            <option value="1">⏱️ In 1 Minute (Test)</option>
-            <option value="30">⏱️ In 30 Minutes</option>
-            <option value="60">⏱️ In 1 Hour</option>
-            <option value="180">⏱️ In 3 Hours</option>
-            <option value="custom">📅 Custom Time</option>
+            <option value="1">⏱️ 1 Min (Test)</option>
+            <option value="30">⏱️ 30 Min</option>
+            <option value="60">⏱️ 1 Hour</option>
+            <option value="180">⏱️ 3 Hours</option>
+            <option value="custom">📅 Custom</option>
           </select>
         </div>
-        <input type="time" id="customTimeInput" style="display:none; width: 100%;">
+        <input type="time" id="customTimeInput"
+          style="display:none; width: 100%; margin-top: 4px; padding: 4px; border-radius: 6px; border: 1px solid #ccc;">
+      </div>
+
+      <div style="text-align: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee;">
+        <a href="#" id="linkOpenScheduler"
+          style="font-size: 11px; color: #0a66c2; text-decoration: none; font-weight: 600;">
+          📅 Open Scheduler Dashboard
+        </a>
       </div>
     </div>
 
-    <!-- Status Bar -->
-    <div id="status" class="status">Ready to create magic...</div>
-
-    <!-- Footer (Inside Container) -->
-    <div id="menuFooter" class="footer-links" style="display:none;">
-      <a href="#" id="changeUser">⚙️ Settings</a>
-      <span class="divider">|</span>
-      <a href="#" id="resetKey">🔄 Reset</a>
-    </div>
-
+    <div class="status-bar" id="status"></div>
   </div>
-  <!-- End Container -->
 
   <script src="popup.js"></script>
 </body>

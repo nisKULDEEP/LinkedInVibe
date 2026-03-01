@@ -4,50 +4,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LinkedInVibe Bot Configuration</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>LinkedInVibe Settings</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            background: #f3f4f6;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px;
+            background: #0f172a;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding: 0;
             margin: 0;
-            color: #333;
+            color: #e2e8f0;
+            min-height: 100vh;
         }
 
-        .container {
-            max-width: 800px;
+        /* ─── Top Bar ─── */
+        .topbar {
+            background: linear-gradient(135deg, #0a66c2, #004182);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(10, 102, 194, 0.3);
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .topbar .version {
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        /* ─── Layout ─── */
+        .layout {
+            display: flex;
+            max-width: 1100px;
             margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            min-height: calc(100vh - 60px);
         }
 
-        h1 {
-            color: #0a66c2;
-            margin-bottom: 5px;
+        /* ─── Sidebar ─── */
+        .sidebar {
+            width: 220px;
+            background: #1e293b;
+            padding: 20px 0;
+            border-right: 1px solid #334155;
+            flex-shrink: 0;
         }
 
-        p.subtitle {
-            color: #666;
-            margin-bottom: 25px;
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .sidebar a:hover {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .sidebar a.active {
+            background: rgba(10, 102, 194, 0.15);
+            color: #60a5fa;
+            border-left-color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .sidebar .nav-icon {
+            font-size: 16px;
+            width: 22px;
+            text-align: center;
+        }
+
+        /* ─── Main Content ─── */
+        .main {
+            flex: 1;
+            padding: 28px 36px;
+            overflow-y: auto;
+        }
+
+        /* ─── Tab Panels ─── */
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
         }
 
         .section-title {
-            font-size: 1.1em;
+            font-size: 1.05em;
             font-weight: 600;
-            color: #444;
-            margin-top: 25px;
-            margin-bottom: 15px;
+            color: #94a3b8;
+            margin: 24px 0 14px;
             padding-bottom: 8px;
-            border-bottom: 2px solid #e5e7eb;
+            border-bottom: 1px solid #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 11px;
+        }
+
+        .section-title:first-child {
+            margin-top: 0;
         }
 
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 16px;
         }
 
         .full-width {
@@ -55,225 +150,768 @@
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 14px;
         }
 
         label {
             display: block;
-            font-size: 0.9em;
-            font-weight: 500;
+            font-size: 12px;
+            font-weight: 600;
             margin-bottom: 5px;
-            color: #555;
+            color: #94a3b8;
         }
 
         input,
         select,
         textarea {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            box-sizing: border-box;
+            padding: 10px 12px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #1e293b;
+            color: #e2e8f0;
             transition: border-color 0.2s;
         }
 
         input:focus,
         select:focus,
         textarea:focus {
-            border-color: #0a66c2;
+            border-color: #3b82f6;
             outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
         }
 
-        .file-upload {
-            border: 2px dashed #d1d5db;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px;
+        input::placeholder,
+        textarea::placeholder {
+            color: #475569;
+        }
+
+        /* ─── Toggle Switch ─── */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .toggle-row .toggle-info {
+            flex: 1;
+        }
+
+        .toggle-row .toggle-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin: 0;
+        }
+
+        .toggle-row .toggle-desc {
+            font-size: 11px;
+            color: #64748b;
+            margin: 3px 0 0;
+        }
+
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
             cursor: pointer;
-            background: #f9fafb;
+            inset: 0;
+            background: #475569;
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .slider::before {
+            content: '';
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .switch input:checked+.slider {
+            background: #3b82f6;
+        }
+
+        .switch input:checked+.slider::before {
+            transform: translateX(20px);
+        }
+
+        /* ─── Apply Mode Selector ─── */
+        .mode-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .mode-card {
+            flex: 1;
+            padding: 16px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+        }
+
+        .mode-card:hover {
+            border-color: #64748b;
+        }
+
+        .mode-card.selected {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .mode-card .mode-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .mode-card .mode-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        .mode-card .mode-desc {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .mode-card input {
+            display: none;
+        }
+
+        /* ─── File Upload ─── */
+        .file-upload {
+            border: 2px dashed #334155;
+            padding: 18px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #1e293b;
             transition: all 0.2s;
         }
 
         .file-upload:hover {
-            border-color: #0a66c2;
-            background: #f0f9ff;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
         }
 
+        /* ─── Buttons ─── */
         .primary-btn {
-            background: #0a66c2;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 20px;
+            padding: 12px 28px;
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
-            font-size: 16px;
-            transition: background 0.2s;
+            font-size: 14px;
+            transition: all 0.2s;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 16px;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
         }
 
         .primary-btn:hover {
-            background: #004182;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transform: translateY(-1px);
+        }
+
+        .secondary-btn {
+            background: #1e293b;
+            color: #60a5fa;
+            border: 1px solid #334155;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .secondary-btn:hover {
+            background: #334155;
         }
 
         .status-msg {
             text-align: center;
-            margin-top: 15px;
-            font-size: 14px;
+            margin-top: 12px;
+            font-size: 13px;
             font-weight: 500;
         }
 
-        .chip-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 5px;
+        .hint {
+            font-size: 11px;
+            color: #475569;
+            margin-top: 3px;
         }
 
-        .chip {
-            background: #e0f2fe;
-            color: #0369a1;
-            padding: 4px 10px;
-            border-radius: 12px;
+        /* ─── Feature Cards ─── */
+        .feature-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .feature-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .feature-card .fc-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .feature-card .fc-title {
             font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            font-weight: 700;
+            color: #e2e8f0;
         }
 
-        .chip span {
+        .feature-card .fc-desc {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+
+        /* ─── Strategy Select ─── */
+        .strategy-cards {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .strategy-card {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: bold;
+            transition: all 0.25s;
+        }
+
+        .strategy-card:hover {
+            border-color: #64748b;
+        }
+
+        .strategy-card.selected {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .strategy-card input {
+            display: none;
+        }
+
+        .strategy-card .sc-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        .strategy-card .sc-desc {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 3px;
+            line-height: 1.3;
+        }
+
+        /* Responsive */
+        @media (max-width: 800px) {
+            .layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                display: flex;
+                overflow-x: auto;
+                border-right: none;
+                border-bottom: 1px solid #334155;
+                padding: 0;
+            }
+
+            .sidebar a {
+                padding: 10px 14px;
+                border-left: none;
+                border-bottom: 3px solid transparent;
+                white-space: nowrap;
+            }
+
+            .sidebar a.active {
+                border-bottom-color: #3b82f6;
+                border-left-color: transparent;
+            }
+
+            .main {
+                padding: 20px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: span 1;
+            }
         }
     </style>
 </head>
 
 <body>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <h1>
+            <img src="icon.png" width="28" style="border-radius: 6px;">
+            LinkedInVibe Settings
+            <span class="version">v1.3.0</span>
+        </h1>
+        <button type="button" class="secondary-btn" id="btnSaveTop"
+            style="background: rgba(255,255,255,0.15); color: white; border: none;">
+            💾 Save All Settings
+        </button>
+    </div>
 
-    <div class="container">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h1>🤖 Auto Job Applier Config</h1>
-                <p class="subtitle">Configure your profile for the autonomous bot.</p>
-            </div>
-            <img src="icon128.png" width="48" style="border-radius: 8px;">
-        </div>
+    <div class="layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <a data-tab="profile" class="active">
+                <span class="nav-icon">👤</span> Profile
+            </a>
+            <a data-tab="bot">
+                <span class="nav-icon">🤖</span> Bot Settings
+            </a>
+            <a data-tab="autofill">
+                <span class="nav-icon">✨</span> Auto-Fill
+            </a>
+            <a data-tab="history">
+                <span class="nav-icon">📋</span> Job History
+            </a>
+            <a data-tab="advanced">
+                <span class="nav-icon">⚙️</span> Advanced
+            </a>
+        </nav>
 
-        <form id="configForm">
-            <!-- Personal Info -->
-            <div class="section-title">Personal Information</div>
-            <div class="grid">
-                <div class="form-group">
-                    <label>First Name</label>
-                    <input type="text" id="firstName" name="firstName" required>
-                </div>
-                <div class="form-group">
-                    <label>Last Name</label>
-                    <input type="text" id="lastName" name="lastName" required>
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-                <div class="form-group">
-                    <label>Phone (+Country Code)</label>
-                    <input type="text" id="phone" name="phone" placeholder="+1 123 456 7890">
-                </div>
-                <div class="form-group full-width">
-                    <label>Address (City, State, Country)</label>
-                    <input type="text" id="city" name="city" placeholder="San Francisco, CA, USA">
-                </div>
-            </div>
+        <!-- Main Content -->
+        <div class="main">
+            <form id="configForm">
 
-            <!-- Links -->
-            <div class="section-title">Professional Links</div>
-            <div class="grid">
-                <div class="form-group">
-                    <label>LinkedIn URL</label>
-                    <input type="url" id="linkedinLink" name="linkedinLink">
-                </div>
-                <div class="form-group">
-                    <label>Portfolio / Website</label>
-                    <input type="url" id="portfolioLink" name="portfolioLink">
-                </div>
-                <div class="form-group">
-                    <label>GitHub (Optional)</label>
-                    <input type="url" id="githubLink" name="githubLink">
-                </div>
-            </div>
+                <!-- ═══════ PROFILE TAB ═══════ -->
+                <div class="tab-panel active" id="tab-profile">
+                    <div class="section-title">Personal Information</div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>First Name *</label>
+                            <input type="text" id="firstName" name="firstName" required placeholder="John">
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name *</label>
+                            <input type="text" id="lastName" name="lastName" required placeholder="Doe">
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="email" name="email" required placeholder="john@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="text" id="phone" name="phone" placeholder="+1 123 456 7890">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Address (City, State, Country)</label>
+                            <input type="text" id="city" name="city" placeholder="San Francisco, CA, USA">
+                        </div>
+                    </div>
 
-            <!-- Resume -->
-            <div class="section-title">Resume (PDF)</div>
-            <div class="form-group full-width">
-                <div class="file-upload" id="resumeUploadArea">
-                    <p id="resumeFileName" style="margin:0; font-weight:500;">Click to upload Resume (PDF)</p>
-                    <p style="margin:5px 0 0; font-size:11px; color:#888;">Max 2MB. Saved locally.</p>
-                    <input type="file" id="resumeFile" accept=".pdf" style="display:None;">
-                </div>
-                <input type="hidden" id="resumeBase64" name="resumeBase64">
-            </div>
+                    <div class="section-title">Professional Links</div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>LinkedIn URL</label>
+                            <input type="url" id="linkedinLink" name="linkedinLink"
+                                placeholder="https://linkedin.com/in/...">
+                        </div>
+                        <div class="form-group">
+                            <label>Portfolio / Website</label>
+                            <input type="url" id="portfolioLink" name="portfolioLink" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label>GitHub</label>
+                            <input type="url" id="githubLink" name="githubLink" placeholder="https://github.com/...">
+                        </div>
+                    </div>
 
-            <!-- Job Preferences -->
-            <div class="section-title">Job Preferences</div>
-            <div class="form-group">
-                <label>Job Titles (Comma separated)</label>
-                <input type="text" id="preferredRoles" name="preferredRoles"
-                    placeholder="Software Engineer, Backend Developer">
-                <p style="font-size:11px; color:#666; margin-top:2px;">These will be used for both Search keywords and
-                    form filling.</p>
-            </div>
-            <div class="grid">
-                <div class="form-group">
-                    <label>Experience (Years)</label>
-                    <input type="number" id="experience" name="experience" min="0">
-                </div>
-                <div class="form-group">
-                    <label>Desired Salary (Annual)</label>
-                    <input type="number" id="desiredSalary" name="desiredSalary">
-                </div>
-                <div class="form-group">
-                    <label>Notice Period (Days)</label>
-                    <input type="number" id="noticePeriodDays" name="noticePeriodDays">
-                </div>
-                <div class="form-group">
-                    <label>Visa Sponsorship Required?</label>
-                    <select id="requireVisa" name="requireVisa">
-                        <option value="No">No</option>
-                        <option value="Yes">Yes</option>
-                    </select>
-                </div>
-            </div>
+                    <div class="section-title">Resume Source</div>
+                    <div class="form-group">
+                        <label>Base Resume Google Doc URL (public, read-only)</label>
+                        <input type="url" id="baseResumeDocUrl" name="baseResumeDocUrl"
+                            placeholder="https://docs.google.com/document/d/...">
+                        <p class="hint">Make your Google Doc publicly viewable. The bot reads it for free (no API key
+                            needed). AI creates tailored copies and downloads them locally.</p>
+                    </div>
 
-            <!-- Bot Settings -->
-            <div class="section-title">Bot Settings</div>
-            <div class="grid">
-                <div class="form-group">
-                    <label>Location for Search</label>
-                    <input type="text" id="location" name="location" placeholder="United States (or leave empty)">
-                </div>
-                <div class="form-group">
-                    <label>Max Applications per run</label>
-                    <input type="number" id="maxJobs" name="maxJobs" value="10">
-                </div>
-                <div class="form-group full-width">
-                    <label>Company Blacklist (Comma separated)</label>
-                    <textarea id="companyBlacklist" name="companyBlacklist" rows="2"
-                        placeholder="Company A, Company B"></textarea>
-                </div>
-                <div class="form-group full-width">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="checkbox" id="autoApply" name="autoApply" style="width:auto;">
-                        <label for="autoApply" style="margin:0;"><strong>Auto-Submit Applications?</strong> (Uncheck to
-                            review before submit)</label>
+                    <div class="section-title">Job Preferences</div>
+                    <div class="form-group">
+                        <label>Target Job Titles (comma separated)</label>
+                        <input type="text" id="preferredRoles" name="preferredRoles"
+                            placeholder="Software Engineer, Backend Developer">
+                        <p class="hint">Used for job search keywords and AI form filling.</p>
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Experience (Years)</label>
+                            <input type="number" id="experience" name="experience" min="0" placeholder="3">
+                        </div>
+                        <div class="form-group">
+                            <label>Desired Salary (Annual)</label>
+                            <input type="number" id="desiredSalary" name="desiredSalary" placeholder="120000">
+                        </div>
+                        <div class="form-group">
+                            <label>Notice Period (Days)</label>
+                            <input type="number" id="noticePeriodDays" name="noticePeriodDays" placeholder="30">
+                        </div>
+                        <div class="form-group">
+                            <label>Visa Sponsorship Required?</label>
+                            <select id="requireVisa" name="requireVisa">
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <button type="submit" class="primary-btn">Save Configuration 💾</button>
-            <div id="saveStatus" class="status-msg"></div>
-        </form>
+                <!-- ═══════ BOT SETTINGS TAB ═══════ -->
+                <div class="tab-panel" id="tab-bot">
+                    <div class="section-title">Apply Mode</div>
+                    <div class="mode-selector">
+                        <label class="mode-card selected" id="mode-easy">
+                            <input type="radio" name="applyMode" value="easy_apply" checked>
+                            <div class="mode-icon">⚡</div>
+                            <div class="mode-name">Easy Apply Only</div>
+                            <div class="mode-desc">Only apply to LinkedIn Easy Apply jobs. Safest and fastest — stays
+                                within LinkedIn.</div>
+                        </label>
+                        <label class="mode-card" id="mode-all">
+                            <input type="radio" name="applyMode" value="all_jobs">
+                            <div class="mode-icon">🌐</div>
+                            <div class="mode-name">All Jobs</div>
+                            <div class="mode-desc">Apply to every job: Easy Apply + open external links and auto-fill
+                                forms using AI.</div>
+                        </label>
+                        <label class="mode-card" id="mode-external">
+                            <input type="radio" name="applyMode" value="external_only">
+                            <div class="mode-icon">🔗</div>
+                            <div class="mode-name">External Only</div>
+                            <div class="mode-desc">Skip Easy Apply. Only open and fill external job application pages.
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="section-title">Application Strategy</div>
+                    <div class="strategy-cards">
+                        <label class="strategy-card selected" id="strat-standard">
+                            <input type="radio" name="strategy" value="standard" checked>
+                            <div class="sc-name">🚀 Standard</div>
+                            <div class="sc-desc">Apply to all matching jobs without AI filtering. Fastest.</div>
+                        </label>
+                        <label class="strategy-card" id="strat-threshold">
+                            <input type="radio" name="strategy" value="threshold">
+                            <div class="sc-name">🎯 AI Filter</div>
+                            <div class="sc-desc">AI scores each job. Only apply if score ≥ minimum threshold.</div>
+                        </label>
+                        <label class="strategy-card" id="strat-tailor">
+                            <input type="radio" name="strategy" value="tailor">
+                            <div class="sc-name">✨ AI Tailor</div>
+                            <div class="sc-desc">AI customizes your resume per job + downloads locally. Slowest but
+                                highest quality.</div>
+                        </label>
+                    </div>
+                    <div class="form-group" id="thresholdGroup" style="display:none;">
+                        <label>Minimum Match Score (%)</label>
+                        <input type="number" id="minMatchScore" name="minMatchScore" min="0" max="100" value="60"
+                            placeholder="60">
+                        <p class="hint">Jobs scoring below this will be skipped.</p>
+                    </div>
+
+                    <div class="section-title">General Settings</div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Target Countries (comma separated)</label>
+                            <input type="text" id="targetCountries" name="targetCountries"
+                                placeholder="United States, India, Canada">
+                        </div>
+                        <div class="form-group">
+                            <label>Target Cities (comma separated)</label>
+                            <input type="text" id="targetCities" name="targetCities"
+                                placeholder="New York, London, Bangalore">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Max Applications Per Run</label>
+                            <input type="number" id="maxJobs" name="maxJobs" value="10" min="1" max="200">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Workplace Type</label>
+                            <div style="display: flex; gap: 15px; margin-top: 5px;">
+                                <label><input type="checkbox" id="workplaceRemote" value="2"> Remote</label>
+                                <label><input type="checkbox" id="workplaceOnsite" value="1"> On-site</label>
+                                <label><input type="checkbox" id="workplaceHybrid" value="3"> Hybrid</label>
+                            </div>
+                            <p class="hint">Check all that apply. Leave all unchecked for no preference.</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Company Blacklist (comma separated)</label>
+                        <textarea id="companyBlacklist" name="companyBlacklist" rows="2"
+                            placeholder="Company A, Company B"></textarea>
+                        <p class="hint">Bot will skip jobs from these companies.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Title Blacklist (comma separated)</label>
+                        <textarea id="titleBlacklist" name="titleBlacklist" rows="2"
+                            placeholder="Senior VP, Director, Intern"></textarea>
+                        <p class="hint">Bot will skip jobs with these words in the title.</p>
+                    </div>
+
+                    <div class="section-title">Behavior</div>
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <p class="toggle-label">Auto-Submit Applications</p>
+                            <p class="toggle-desc">When off, bot will fill forms but pause before submitting for your
+                                review.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="autoApply" name="autoApply">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <p class="toggle-label">Show Relevance Score Widget</p>
+                            <p class="toggle-desc">Display the 🎯 floating icon on LinkedIn job pages to check match
+                                scores.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="showRelevanceWidget" name="showRelevanceWidget" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <p class="toggle-label">Enable Desktop Notifications</p>
+                            <p class="toggle-desc">Get notified when the bot needs help or finishes a batch.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="enableNotifications" name="enableNotifications" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ═══════ AUTO-FILL TAB ═══════ -->
+                <div class="tab-panel" id="tab-autofill">
+                    <div class="section-title">Universal Auto-Fill</div>
+                    <div class="feature-cards">
+                        <div class="feature-card">
+                            <div class="fc-icon">🤖</div>
+                            <div>
+                                <div class="fc-title">AI Form Analysis</div>
+                                <div class="fc-desc">AI reads page HTML and maps your profile data to form fields on any
+                                    job site.</div>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="fc-icon">🔐</div>
+                            <div>
+                                <div class="fc-title">Safety First</div>
+                                <div class="fc-desc">Never fills passwords or creates accounts. Detects CAPTCHAs and
+                                    asks for help.</div>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="fc-icon">📝</div>
+                            <div>
+                                <div class="fc-title">Multi-Step Forms</div>
+                                <div class="fc-desc">Automatically detects page changes and re-fills new form steps.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="fc-icon">🧠</div>
+                            <div>
+                                <div class="fc-title">Learns From You</div>
+                                <div class="fc-desc">Remembers corrections you make, so next time it fills smarter.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <p class="toggle-label">Show Auto-Fill Widget on External Sites</p>
+                            <p class="toggle-desc">When visiting job sites, show the 🤖 floating button to auto-fill any
+                                form on the page.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="showAutofillWidget" name="showAutofillWidget" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <p class="toggle-label">Auto-Fill on External Job Open</p>
+                            <p class="toggle-desc">When the bot opens an external job link, automatically start filling
+                                the form without waiting for you to click.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="autoFillOnExternalOpen" name="autoFillOnExternalOpen" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="section-title">Learned Answers</div>
+                    <p class="hint" style="margin-bottom: 10px;">The bot remembers answers you've corrected. Clear them
+                        to start fresh.</p>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span id="learnedCount" style="font-size: 13px; color: #60a5fa;">0 learned answers</span>
+                        <button type="button" id="btnClearLearned" class="secondary-btn">🗑️ Clear All</button>
+                    </div>
+                </div>
+
+                <!-- ═══════ JOB HISTORY TAB ═══════ -->
+                <div class="tab-panel" id="tab-history">
+                    <div class="section-title">Applied Jobs History</div>
+                    <p class="hint" style="margin-bottom: 10px;">All applications are tracked locally. Grouped by date.
+                    </p>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 14px; align-items: center;">
+                        <select id="historyDateFilter" style="flex: 1;">
+                            <option value="all">All Dates</option>
+                        </select>
+                        <button type="button" id="btnExportCsv" class="secondary-btn"
+                            style="width: auto; padding: 8px 14px;">📥 Export CSV</button>
+                        <button type="button" id="btnClearHistory" class="secondary-btn"
+                            style="width: auto; padding: 8px 14px; color: #f87171; border-color: #7f1d1d;">🗑️
+                            Clear</button>
+                    </div>
+
+                    <div id="historyTable"
+                        style="max-height: 400px; overflow-y: auto; border: 1px solid #334155; border-radius: 8px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <thead>
+                                <tr style="background: #1e293b; position: sticky; top: 0;">
+                                    <th style="padding: 8px; text-align: left; color: #94a3b8;">Job</th>
+                                    <th style="padding: 8px; text-align: left; color: #94a3b8;">Company</th>
+                                    <th style="padding: 8px; text-align: left; color: #94a3b8;">Status</th>
+                                    <th style="padding: 8px; text-align: left; color: #94a3b8;">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyBody">
+                                <tr>
+                                    <td colspan="4" style="padding: 20px; text-align: center; color: #64748b;">No
+                                        applications yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="historyCount" style="font-size: 11px; color: #64748b; margin-top: 8px;"></div>
+                </div>
+
+                <!-- ═══════ ADVANCED TAB ═══════ -->
+                <div class="tab-panel" id="tab-advanced">
+                    <div class="section-title">AI Configuration</div>
+                    <div class="form-group">
+                        <label>Gemini API Key</label>
+                        <input type="password" id="geminiApiKey" name="geminiApiKey" placeholder="Your Gemini API Key">
+                        <p class="hint">Used for form analysis, match scoring, resume tailoring, and all AI features.
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label>AI Model</label>
+                        <select id="aiModel" name="aiModel">
+                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Fast, Cheap)</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Balanced)</option>
+                            <option value="gemini-2.5-pro-preview-05-06">Gemini 2.5 Pro (Best Quality)</option>
+                        </select>
+                        <p class="hint">Flash Lite is recommended for most use cases.</p>
+                    </div>
+
+                    <div class="section-title">Data Management</div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" id="btnExportSettings" class="secondary-btn">📥 Export Settings</button>
+                        <button type="button" id="btnImportSettings" class="secondary-btn">📤 Import Settings</button>
+                        <button type="button" id="btnResetAll" class="secondary-btn"
+                            style="color: #f87171; border-color: #7f1d1d;">🗑️ Reset All Settings</button>
+                    </div>
+                    <input type="file" id="importFile" accept=".json" style="display:none;">
+
+                    <div class="section-title">Feature Toggles (Memory Optimization)</div>
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <p class="toggle-label">Smart Text Enhancer (✨)</p>
+                            <p class="toggle-desc">Show a magic wand icon on LinkedIn text boxes to AI-enhance your
+                                posts and comments. Disable to save memory.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="enableTextEnhancer" name="enableTextEnhancer" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="section-title">Debug</div>
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <p class="toggle-label">Verbose Console Logging</p>
+                            <p class="toggle-desc">Enable detailed logs in DevTools console for debugging.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="verboseLogging" name="verboseLogging">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="primary-btn">💾 Save All Settings</button>
+                <div id="saveStatus" class="status-msg"></div>
+            </form>
+        </div>
     </div>
 
     <script src="options.js"></script>

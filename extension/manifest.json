@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "LinkedInVibe",
-    "version": "1.2",
-    "description": "Your All-in-One LinkedIn AI Assistant: Viral Post Generator, Auto-Applier, and Job Search Helper.",
+    "version": "1.3.0",
+    "description": "Your All-in-One LinkedIn AI Assistant: Viral Post Generator, Auto-Applier, Universal Form Filler, and Job Search Helper.",
     "permissions": [
         "activeTab",
         "scripting",
@@ -10,10 +10,12 @@
         "downloads",
         "alarms",
         "contextMenus",
-        "notifications"
+        "notifications",
+        "tabs"
     ],
     "host_permissions": [
         "https://generativelanguage.googleapis.com/*",
+        "https://docs.google.com/*",
         "http://localhost:3000/*",
         "https://linkedinvibe.onrender.com/*",
         "https://nplvpyrjtkqjopslwvqa.supabase.co/*",
@@ -46,12 +48,16 @@
             ],
             "js": [
                 "content.js",
-                "job_bot.js"
+                "job_bot.js",
+                "relevance_widget.js",
+                "text_enhancer.js"
             ]
         },
         {
             "matches": [
-                "*://niskuldeep.github.io/LinkedInVibe/*"
+                "*://niskuldeep.github.io/LinkedInVibe/*",
+                "http://localhost:3000/*",
+                "http://localhost:5173/*"
             ],
             "js": [
                 "dashboard_bridge.js"

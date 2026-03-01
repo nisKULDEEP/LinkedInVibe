@@ -750,16 +750,8 @@ async function handleApplicationModal() {
             continue; // Retry loop
         }
 
-        // 0. Auto-select resume if this is the resume page
-        const resumeCards = modal.querySelectorAll('div[class*="jobs-document-upload-redesign-card"], label[data-test-document-list-item]');
-        if (resumeCards.length > 0) {
-            const firstRadio = resumeCards[0].querySelector('input[type="radio"]');
-            if (firstRadio && !firstRadio.checked) {
-                firstRadio.click();
-                console.log(`   📄 Auto-selected resume: ${resumeCards[0].innerText.split('\n')[0]}`);
-                await wait(500);
-            }
-        }
+        // 0. Auto-select resume logic has been moved to fillCurrentPage to correctly prioritize 
+        // uploading a newly generated tailored resume.
 
         // 1. Fill Form (Always try to fill current page first)
         console.log("   ✍️ Filling current page...");
@@ -1060,51 +1052,56 @@ async function fillCurrentPage(modal) {
 
         if (filled) continue;
 
-        // --- Resume Page: Auto-select the most recent resume ---
-        if (label.includes('resume') || label.includes('cv') || label.includes('be sure to include')) {
-            // LinkedIn shows previously-uploaded resumes as radio buttons or cards
-            // Select the first one (most recent) if not already selected
+        // --- Resume Page: Auto-select or Upload ---
+        const isResumeField = label.includes('resume') || label.includes('cv') || label.includes('be sure to include') || input.type === 'file';
+        if (isResumeField) {
+            const fileInput = modal.querySelector('input[type="file"]');
             const resumeCards = modal.querySelectorAll('label[data-test-document-list-item], div[class*="jobs-document-upload-redesign-card"]');
-            if (resumeCards.length > 0) {
+
+            // PRIORITY 1: Upload a newly generated tailored resume if available
+            if (config._resumeBase64 && config._resumeFilename && fileInput) {
+                console.log(`   📂 Uploading newly tailored resume: ${config._resumeFilename}`);
+                try {
+                    const byteCharacters = atob(config._resumeBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+                    const file = new File([blob], config._resumeFilename, { type: 'application/pdf' });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+
+                    fileInput.files = dataTransfer.files;
+                    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    console.log("   ✅ Tailored resume uploaded successfully!");
+
+                    // Consume the resume so we don't infinitely re-upload
+                    config._resumeBase64 = null;
+
+                    filled = true;
+                    await wait(2000); // Give LinkedIn UI time to process 
+                    continue;
+                } catch (e) {
+                    console.error("   ❌ Error uploading tailored resume", e);
+                }
+            }
+
+            // PRIORITY 2: Select the most recent existing resume if we didn't upload one
+            if (!filled && resumeCards.length > 0) {
                 const firstRadio = resumeCards[0].querySelector('input[type="radio"]');
                 if (firstRadio && !firstRadio.checked) {
                     firstRadio.click();
-                    console.log(`   📄 Auto-selected most recent resume: ${resumeCards[0].innerText.split('\n')[0]}`);
-                } else {
-                    console.log(`   📄 Most recent resume already selected`);
+                    console.log(`   📄 Auto-selected existing recent resume: ${resumeCards[0].innerText.split('\n')[0]}`);
+                    await wait(500);
                 }
                 filled = true;
-            } else if (input.type === 'file') {
-                console.log("   📂 Resume upload input detected (no existing resumes to select)");
-                if (config._resumeBase64 && config._resumeFilename) {
-                    console.log(`   Uploading tailored resume: ${config._resumeFilename}`);
-                    try {
-                        const byteCharacters = atob(config._resumeBase64);
-                        const byteNumbers = new Array(byteCharacters.length);
-                        for (let i = 0; i < byteCharacters.length; i++) {
-                            byteNumbers[i] = byteCharacters.charCodeAt(i);
-                        }
-                        const byteArray = new Uint8Array(byteNumbers);
-                        const blob = new Blob([byteArray], { type: 'application/pdf' });
-
-                        const file = new File([blob], config._resumeFilename, { type: 'application/pdf' });
-                        const dataTransfer = new DataTransfer();
-                        dataTransfer.items.add(file);
-
-                        input.files = dataTransfer.files;
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
-
-                        console.log("   ✅ Resume uploaded via DataTransfer!");
-                        filled = true;
-                        await wait(1000); // Give LinkedIn UI time to process the file upload
-                    } catch (e) {
-                        console.error("   ❌ Failed to upload generated resume:", e);
-                    }
-                }
+                continue;
             }
-            continue;
         }
-
         // --- AI Fallback (for any unfilled input: text, number, textarea, select, radio) ---
         if (!filled && (input.type === 'text' || input.type === 'number' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT' || input.tagName === 'FIELDSET')) {
             const questionData = {

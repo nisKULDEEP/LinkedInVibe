@@ -82,12 +82,14 @@ function restoreOptions() {
         setInput('city', profile.city);
         setInput('linkedinLink', profile.linkedinLink);
         setInput('portfolioLink', profile.portfolioLink);
-        setInput('githubLink', profile.githubLink);
+        setInput('githubLink', profile.githubLink || '');
         setInput('preferredRoles', (profile.preferredRoles || []).join(', '));
-        setInput('experience', profile.experience);
-        setInput('desiredSalary', profile.desiredSalary);
-        setInput('noticePeriodDays', profile.noticePeriodDays);
+        setInput('experience', profile.experience || '');
+        setInput('currentCtc', profile.currentCtc || '');
+        setInput('desiredSalary', profile.desiredSalary || '');
+        setInput('noticePeriodDays', profile.noticePeriodDays || '');
         setInput('requireVisa', profile.requireVisa || 'No');
+        setInput('willingToRelocate', profile.willingToRelocate || 'Yes');
 
         // Removed old resumeBase64 loading
 
@@ -324,9 +326,11 @@ function saveOptions(e) {
         githubLink: getVal('githubLink'),
         preferredRoles: getVal('preferredRoles').split(',').map(s => s.trim()).filter(Boolean),
         experience: getVal('experience'),
+        currentCtc: getVal('currentCtc'),
         desiredSalary: getVal('desiredSalary'),
         noticePeriodDays: getVal('noticePeriodDays'),
-        requireVisa: getVal('requireVisa')
+        requireVisa: getVal('requireVisa'),
+        willingToRelocate: getVal('willingToRelocate')
     };
     profile.fullName = `${profile.firstName} ${profile.lastName}`;
 

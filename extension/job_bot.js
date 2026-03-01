@@ -123,6 +123,7 @@ function initBot() {
         'desiredSalary', 'currentCtc', 'currency', 'noticePeriodDays',
         'recentEmployer', 'linkedinHeadline', 'linkedinSummary', 'coverLetter', 'userInfoAll',
         'workStyle', 'jobType', 'experienceLevel', 'maxJobs',
+        'willingToRelocate',
         'companyBlacklist', 'titleBlacklist',
         'selectedJobTitles', 'autoApply', 'botActive'
     ];
@@ -963,6 +964,7 @@ async function fillCurrentPage(modal) {
         // Work Preferences
         'workStyle': ['work style', 'work mode', 'remote', 'hybrid', 'on-site'],
         'jobType': ['job type', 'employment type', 'full-time', 'contract'],
+        'willingToRelocate': ['relocate', 'willing to relocate', 'relocation'],
         'experienceLevel': ['seniority', 'experience level', 'career level'],
         // Professional Content
         'linkedinHeadline': ['headline', 'professional title', 'tagline'],

@@ -349,7 +349,7 @@
 
         // Step 5: Apply field values
         showStatus(`Filling ${mapping.fields.length} fields...`, 'loading');
-        const results = await applyFieldMapping(mapping.fields);
+        const results = await applyFieldMapping(mapping.fields, profile);
 
         // Step 6: Report results
         const filled = results.filter(r => r.filled).length;
@@ -388,7 +388,7 @@
     // ========================
     // 6. APPLY FIELD MAPPING
     // ========================
-    async function applyFieldMapping(fields) {
+    async function applyFieldMapping(fields, profile) {
         const results = [];
 
         for (const field of fields) {
@@ -405,8 +405,35 @@
                     continue;
                 }
 
-                // Skip file inputs
+                // Handle file uploads (Resumes/CVs)
                 if (element.type === 'file') {
+                    const isResumeField = field.label.toLowerCase().includes('resume') || field.label.toLowerCase().includes('cv');
+                    if (isResumeField && profile._resumeBase64 && profile._resumeFilename) {
+                        try {
+                            const byteCharacters = atob(profile._resumeBase64);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+                            const file = new File([blob], profile._resumeFilename, { type: 'application/pdf' });
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+
+                            element.files = dataTransfer.files;
+                            element.dispatchEvent(new Event('change', { bubbles: true }));
+
+                            results.push({ label: field.label, filled: true, value: profile._resumeFilename });
+
+                            // Prevent uploading the same resume locally to multiple file inputs
+                            profile._resumeBase64 = null;
+                            continue;
+                        } catch (err) {
+                            console.error("Error uploading file in universal autofill:", err);
+                        }
+                    }
                     results.push({ label: field.label, filled: false, reason: 'File upload (manual)' });
                     continue;
                 }

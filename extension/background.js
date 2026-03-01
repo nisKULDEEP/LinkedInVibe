@@ -429,7 +429,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 try {
                     console.log('📄 Calling backend to render PDF...');
-                    const pdfResponse = await fetch('http://localhost:3000/api/generate-pdf', {
+                    const pdfResponse = await fetch('https://linkedinvibe.onrender.com/api/generate-pdf', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ html: htmlDoc, filename: finalFilename })
@@ -1214,7 +1214,7 @@ Example:
     }
 
     // 2. Render Image via Backend
-    const RENDER_URL = 'http://localhost:3000/api/render-image'; // Local fallback or user config ideal here
+    const RENDER_URL = 'https://linkedinvibe.onrender.com/api/render-image';
 
     try {
         const renderResponse = await fetch(RENDER_URL, {

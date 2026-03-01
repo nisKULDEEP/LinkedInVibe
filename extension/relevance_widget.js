@@ -170,6 +170,20 @@
         scoreDiv.style.display = 'none';
         loadingDiv.style.display = 'block';
 
+        function sanitizeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, function (m) {
+                switch (m) {
+                    case '&': return '&amp;';
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '"': return '&quot;';
+                    case "'": return '&#039;';
+                    default: return m;
+                }
+            });
+        }
+
         // Extract JD
         let jd = '';
         const descEl = document.querySelector('.jobs-description') ||
@@ -212,11 +226,13 @@
                     ? 'linear-gradient(135deg, #d97706, #b45309)'
                     : 'linear-gradient(135deg, #dc2626, #991b1b)';
 
+            const safeReason = sanitizeHTML(reason);
+
             resultDiv.style.display = 'block';
             resultDiv.innerHTML = `
                 <div style="text-align:center;">
                     <div class="lv-score-ring" style="background: ${bgGrad};">${score}%</div>
-                    <div style="font-size: 11px; color: #666; margin-bottom: 10px;">${reason}</div>
+                    <div style="font-size: 11px; color: #666; margin-bottom: 10px;">${safeReason}</div>
                 </div>
             `;
 

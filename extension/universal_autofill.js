@@ -19,6 +19,20 @@
 
     console.log('🤖 LinkedInVibe Universal Auto-Fill loaded on:', window.location.href);
 
+    function sanitizeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, function (m) {
+            switch (m) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case "'": return '&#039;';
+                default: return m;
+            }
+        });
+    }
+
     // ========================
     // 1. FLOATING WIDGET
     // ========================
@@ -254,9 +268,10 @@
         };
         el.style.display = 'block';
         el.style.cssText += `background: ${colors[type] || colors.info}; padding: 8px; border-radius: 6px; font-size: 12px; margin-top: 4px;`;
+        const safeText = sanitizeHTML(text);
         el.innerHTML = type === 'loading'
-            ? `<span class="lv-spinner"></span> ${text}`
-            : text;
+            ? `<span class="lv-spinner"></span> ${safeText}`
+            : safeText;
     }
 
     // ========================
@@ -505,8 +520,8 @@
             <div style="font-weight:600; margin-bottom: 6px;">⚠️ Needs your attention:</div>
             ${unfilled.map(f => `
                 <div style="margin-bottom: 4px; padding: 4px 0; border-bottom: 1px solid #fde68a;">
-                    <strong>${f.label}</strong><br>
-                    <span style="color: #92400e; font-size: 11px;">${f.reason}</span>
+                    <strong>${sanitizeHTML(f.label)}</strong><br>
+                    <span style="color: #92400e; font-size: 11px;">${sanitizeHTML(f.reason)}</span>
                 </div>
             `).join('')}
         `;

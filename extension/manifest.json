@@ -16,7 +16,6 @@
     "host_permissions": [
         "https://generativelanguage.googleapis.com/*",
         "https://docs.google.com/*",
-        "http://localhost:3000/*",
         "https://linkedinvibe.onrender.com/*",
         "https://nplvpyrjtkqjopslwvqa.supabase.co/*",
         "<all_urls>"
@@ -56,7 +55,6 @@
         {
             "matches": [
                 "*://niskuldeep.github.io/LinkedInVibe/*",
-                "http://localhost:3000/*",
                 "http://localhost:5173/*"
             ],
             "js": [

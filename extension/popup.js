@@ -188,7 +188,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, { action: "auto_scrape_and_generate" }, response => {
           if (chrome.runtime.lastError) {
-            $('status').textContent = "⚠️ Open LinkedIn first";
+            const statusEl = $('status');
+            statusEl.innerHTML = '<a href="#" id="openLinkedInLnk" style="color:#ef4444;text-decoration:none;font-weight:600;display:block;text-align:center;padding:8px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;">⚠️ Open LinkedIn first (Click Here)</a>';
+            statusEl.style.display = 'block';
+
+            setTimeout(() => {
+              const lnk = document.getElementById('openLinkedInLnk');
+              if (lnk) {
+                lnk.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  chrome.tabs.create({ url: 'https://www.linkedin.com/feed/' });
+                });
+              }
+            }, 50);
           }
         });
       }

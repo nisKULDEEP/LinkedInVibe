@@ -694,34 +694,47 @@
     <div class="section" id="actionArea">
       <div class="sub-header">
         <button class="back-btn" id="backToMenu">‹</button>
-        <span class="sub-title">AI Post Generator</span>
+        <span class="sub-title" style="font-weight: 700; color: #1e293b;">AI Post Generator</span>
       </div>
 
-      <button class="btn-primary" id="autoScrapeBtn">✨ Generate Magic Post</button>
+      <div
+        style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; padding: 12px; border-radius: 10px; margin-bottom: 12px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 4px;">✨</div>
+        <div style="font-size: 13px; font-weight: 600; color: #166534;">Create Viral Posts</div>
+        <div style="font-size: 11px; color: #15803d; margin-top: 2px;">Sit back while AI writes engaging content based
+          on your profile or custom topic.</div>
+      </div>
 
-      <div style="margin-top: 10px;">
-        <label style="font-size: 11px; font-weight: 500; color: #555;">Custom Topic (Optional)</label>
-        <textarea class="post-textarea" id="customTopic" rows="2" placeholder="e.g. 'React 19 features'"></textarea>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">Custom
+          Topic (Optional)</label>
+        <textarea class="post-textarea" id="customTopic" rows="2" placeholder="e.g. 'My thoughts on React 19...'"
+          style="width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; padding: 8px; font-size: 12px; resize: none;"></textarea>
+      </div>
 
-        <div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
-          <label style="font-size: 11px; font-weight: 500; color: #555;">Schedule:</label>
-          <select class="model-select" id="scheduleDelay" style="width: 60%;">
-            <option value="0">🚀 Post Now</option>
-            <option value="1">⏱️ 1 Min (Test)</option>
-            <option value="30">⏱️ 30 Min</option>
-            <option value="60">⏱️ 1 Hour</option>
-            <option value="180">⏱️ 3 Hours</option>
-            <option value="custom">📅 Custom</option>
-          </select>
-        </div>
+      <div
+        style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+        <label style="font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 6px; display: block;">Schedule
+          Post</label>
+        <select class="model-select" id="scheduleDelay"
+          style="width: 100%; margin-bottom: 6px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 6px; font-size: 12px;">
+          <option value="0">🚀 Post Now</option>
+          <option value="30">⏱️ Post in 30 Min</option>
+          <option value="60">⏱️ Post in 1 Hour</option>
+          <option value="180">⏱️ Post in 3 Hours</option>
+          <option value="custom">📅 Custom Time</option>
+        </select>
         <input type="time" id="customTimeInput"
-          style="display:none; width: 100%; margin-top: 4px; padding: 4px; border-radius: 6px; border: 1px solid #ccc;">
+          style="display:none; width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px;">
       </div>
 
-      <div style="text-align: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee;">
+      <button class="btn-primary" id="autoScrapeBtn" style="font-size: 14px; padding: 12px; margin-bottom: 10px;">✨
+        Generate Magic Post</button>
+
+      <div style="text-align: center;">
         <a href="#" id="linkOpenScheduler"
-          style="font-size: 11px; color: #0a66c2; text-decoration: none; font-weight: 600;">
-          📅 Open Scheduler Dashboard
+          style="font-size: 11px; color: #0a66c2; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+          <span>📅</span> Open Scheduler Dashboard
         </a>
       </div>
     </div>
